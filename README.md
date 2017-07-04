@@ -7,7 +7,7 @@ Simple key value store for a homework of Security-Camp2017.
 ## Server
 ```shell
 $ [[ -e /tmp/echo.sock ]] && rm /tmp/echo.sock
-$ go src/main.go
+$ go run src/main.go
 ```
 
 ## Client
