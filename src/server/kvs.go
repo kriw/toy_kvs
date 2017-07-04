@@ -2,10 +2,10 @@ package server
 
 var database = make(map[string]string)
 
-func Get(key string) string {
+func get(key string) string {
 	return database[key]
 }
 
-func Set(key string, value string) {
+func set(key string, value string) {
 	database[key] = value
 }
