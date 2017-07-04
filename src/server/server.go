@@ -18,5 +18,9 @@ func KeyValueServer(c net.Conn, proc func(string) string) {
 		if err != nil {
 			log.Fatal("Write: ", err)
 		}
+		_, err = c.Write([]byte("> "))
+		if err != nil {
+			log.Fatal("Write: ", err)
+		}
 	}
 }
