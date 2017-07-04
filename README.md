@@ -1,16 +1,16 @@
-#toy kvs
+# toy kvs
 
 Simple key value store for a homework of Security-Camp2017.
 
-#Usage
+# Usage
 
-##Server
+## Server
 ```shell
 $ [[ -e /tmp/echo.sock ]] && rm /tmp/echo.sock
 $ go src/main.go
 ```
 
-##Client
+## Client
 ```shell
 socat - unix-connect:/tmp/echo.sock
 ```
