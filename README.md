@@ -5,21 +5,20 @@ Simple key value store for a homework of Security-Camp2017.
 # Usage
 
 ## Server
-```shell
-$ [[ -e /tmp/echo.sock ]] && rm /tmp/echo.sock
-$ go run src/main.go
+```bash
+./run.sh server
 ```
 
 ## Client
 ```shell
-socat - unix-connect:/tmp/echo.sock
+./run.sh client
 ```
 
 
 ## Example
 
 ```shell
-$ socat - unix-connect:/tmp/echo.sock
+$ ./run.sh client
 set hoge piyo
 OK
 > get hoge
