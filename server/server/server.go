@@ -8,6 +8,9 @@ import (
 
 func RequestHandler(c net.Conn) {
 	for {
+		if _, err := c.Write([]byte("> ")); err != nil {
+			log.Fatal("Write: ", err)
+		}
 		buf := make([]byte, 512)
 		nr, err := c.Read(buf)
 		if err != nil {
@@ -15,12 +18,7 @@ func RequestHandler(c net.Conn) {
 		}
 		query := buf[0:nr]
 		response := handleQuery(string(query))
-		_, err = c.Write([]byte(response))
-		if err != nil {
-			log.Fatal("Write: ", err)
-		}
-		_, err = c.Write([]byte("> "))
-		if err != nil {
+		if _, err := c.Write([]byte(response)); err != nil {
 			log.Fatal("Write: ", err)
 		}
 	}
