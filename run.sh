@@ -5,11 +5,11 @@ else
     cmd=$1
 fi
 
-if test $cmd == "server" ; then
+if test $cmd == "server"; then
     [[ -e /tmp/echo.sock ]] && rm /tmp/echo.sock
     go run server/main.go
-elif test $cmd == "client" ; then
-    ./client/client.sh
+elif test $cmd == "client"; then
+    go run client/main.go
 else
     echo "Usage $0 [client|server]"
 fi
