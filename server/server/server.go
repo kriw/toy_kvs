@@ -1,6 +1,7 @@
 package server
 
 import (
+	"../formData"
 	"log"
 	"net"
 	"strings"
@@ -38,11 +39,16 @@ func RequestHandler(conn net.Conn) {
 		select {
 		case query := <-rx:
 			response := handleQuery(query)
-			if _, err := conn.Write([]byte(response)); err != nil {
-				log.Fatal("Write: ", err)
+			sendData := formData.FormData{formData.OK, response}
+			if _, err := conn.Write(formData.Serialize(sendData)); err != nil {
 				return
 			}
 		case <-timeout:
+			//send timeout message
+			sendData := formData.FormData{formData.CLOSE, ""}
+			if _, err := conn.Write(formData.Serialize(sendData)); err != nil {
+				return
+			}
 			println("timeout")
 			return
 		}
