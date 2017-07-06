@@ -19,7 +19,7 @@ Simple key value store for a homework of Security-Camp2017.
 
 ```shell
 $ ./run.sh client
-set hoge piyo
+> set hoge piyo
 OK
 > get hoge
 piyo

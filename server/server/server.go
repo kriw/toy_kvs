@@ -4,22 +4,48 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
-func RequestHandler(c net.Conn) {
+func receiver(conn net.Conn, c chan string) {
 	for {
-		if _, err := c.Write([]byte("> ")); err != nil {
-			log.Fatal("Write: ", err)
-		}
 		buf := make([]byte, 512)
-		nr, err := c.Read(buf)
+		nr, err := conn.Read(buf)
 		if err != nil {
+			log.Fatal("Read: ", err, "\n", "Connection closed")
 			return
 		}
-		query := buf[0:nr]
-		response := handleQuery(string(query))
-		if _, err := c.Write([]byte(response)); err != nil {
+		c <- string(buf[0:nr])
+	}
+}
+
+func RequestHandler(conn net.Conn) {
+	rx := make(chan string)
+	go receiver(conn, rx)
+	for {
+		//set timeout
+		timeout := make(chan bool, 1)
+		go func() {
+			time.Sleep(10 * time.Second)
+			timeout <- true
+		}()
+
+		//send prefix
+		if _, err := conn.Write([]byte("> ")); err != nil {
 			log.Fatal("Write: ", err)
+			return
+		}
+
+		select {
+		case query := <-rx:
+			response := handleQuery(query)
+			if _, err := conn.Write([]byte(response)); err != nil {
+				log.Fatal("Write: ", err)
+				return
+			}
+		case <-timeout:
+			println("timeout")
+			return
 		}
 	}
 }
