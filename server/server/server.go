@@ -12,7 +12,6 @@ func receiver(conn net.Conn, c chan string) {
 		buf := make([]byte, 512)
 		nr, err := conn.Read(buf)
 		if err != nil {
-			log.Fatal("Read: ", err, "\n", "Connection closed")
 			return
 		}
 		c <- string(buf[0:nr])
