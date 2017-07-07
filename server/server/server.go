@@ -19,7 +19,7 @@ func receiver(conn net.Conn, c chan string) {
 	}
 }
 
-func RequestHandler(conn net.Conn) {
+func requestHandler(conn net.Conn) {
 	rx := make(chan string)
 	go receiver(conn, rx)
 	for {
@@ -67,5 +67,19 @@ func handleQuery(query string) string {
 		return "OK\n"
 	default:
 		return "Unknown query.\n"
+	}
+}
+
+func Serve(connType, laddr string) {
+	l, err := net.Listen(connType, laddr)
+	if err != nil {
+		log.Fatal("listen error:", err)
+	}
+	for {
+		fd, err := l.Accept()
+		if err != nil {
+			log.Fatal("accept error:", err)
+		}
+		go requestHandler(fd)
 	}
 }
