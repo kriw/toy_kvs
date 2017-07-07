@@ -8,11 +8,12 @@ import (
 	"time"
 )
 
-func backgroundRead(conn net.Conn, c chan string) {
+func backgroundRead(conn net.Conn, c chan string, connClosed chan bool) {
 	for {
 		buf := make([]byte, 512)
 		nr, err := conn.Read(buf)
 		if err != nil {
+			connClosed <- true
 			return
 		}
 		c <- string(buf[0:nr])
@@ -21,7 +22,8 @@ func backgroundRead(conn net.Conn, c chan string) {
 
 func requestHandler(conn net.Conn) {
 	rx := make(chan string)
-	go backgroundRead(conn, rx)
+	connClosed := make(chan bool)
+	go backgroundRead(conn, rx, connClosed)
 	send := func(msg []byte) {
 		if _, err := conn.Write(msg); err != nil {
 			log.Fatal("Write: ", err)
@@ -48,6 +50,8 @@ func requestHandler(conn net.Conn) {
 			sendData := formData.FormData{formData.CLOSE, ""}
 			send(formData.Serialize(sendData))
 			println("timeout")
+			return
+		case <-connClosed:
 			return
 		}
 	}
