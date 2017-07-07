@@ -25,7 +25,6 @@ func requestHandler(conn net.Conn) {
 	send := func(msg []byte) {
 		if _, err := conn.Write(msg); err != nil {
 			log.Fatal("Write: ", err)
-			return
 		}
 	}
 	for {
