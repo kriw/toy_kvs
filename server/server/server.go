@@ -2,13 +2,13 @@ package server
 
 import (
 	"../formData"
+	"../query"
 	"log"
 	"net"
-	"strings"
 	"time"
 )
 
-func receiver(conn net.Conn, c chan string) {
+func backgroundRead(conn net.Conn, c chan string) {
 	for {
 		buf := make([]byte, 512)
 		nr, err := conn.Read(buf)
@@ -21,7 +21,13 @@ func receiver(conn net.Conn, c chan string) {
 
 func requestHandler(conn net.Conn) {
 	rx := make(chan string)
-	go receiver(conn, rx)
+	go backgroundRead(conn, rx)
+	send := func(msg []byte) {
+		if _, err := conn.Write(msg); err != nil {
+			log.Fatal("Write: ", err)
+			return
+		}
+	}
 	for {
 		//set timeout
 		timeout := make(chan bool, 1)
@@ -31,40 +37,40 @@ func requestHandler(conn net.Conn) {
 		}()
 
 		//send prefix
-		if _, err := conn.Write([]byte("> ")); err != nil {
-			log.Fatal("Write: ", err)
-			return
-		}
+		send([]byte("> "))
 
 		select {
 		case query := <-rx:
 			response := handleQuery(query)
 			sendData := formData.FormData{formData.OK, response}
-			if _, err := conn.Write(formData.Serialize(sendData)); err != nil {
-				return
-			}
+			send(formData.Serialize(sendData))
 		case <-timeout:
 			//send timeout message
 			sendData := formData.FormData{formData.CLOSE, ""}
-			if _, err := conn.Write(formData.Serialize(sendData)); err != nil {
-				return
-			}
+			send(formData.Serialize(sendData))
 			println("timeout")
 			return
 		}
 	}
 }
 
-func handleQuery(query string) string {
-	s := strings.Split(query, " ")
-	op, arg := s[0], s[1:]
-	switch op {
-	case "get":
-		return get(strings.TrimSpace(arg[0])) + "\n"
-	case "set":
-		key, value := strings.TrimSpace(arg[0]), strings.TrimSpace(arg[1])
-		set(key, value)
-		return "OK\n"
+func handleQuery(queryStr string) string {
+	q := query.Parse(queryStr)
+	switch q.Op {
+	case query.GET:
+		if len(q.Args) == 0 {
+			return "Error\n"
+		} else {
+			return get(q.Args[0]) + "\n"
+		}
+	case query.SET:
+		if len(q.Args) <= 1 {
+			return "Error\n"
+		} else {
+			key, value := q.Args[0], q.Args[1]
+			set(key, value)
+			return "OK\n"
+		}
 	default:
 		return "Unknown query.\n"
 	}
