@@ -1,6 +1,6 @@
 # toy kvs
 
-Simple key value store for a homework of Security-Camp2017.
+Simple key value store for homework of Security-Camp2017.
 
 # Usage
 
