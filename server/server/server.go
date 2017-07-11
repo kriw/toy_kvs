@@ -8,6 +8,16 @@ import (
 	"time"
 )
 
+var database = make(map[string]string)
+
+func get(key string) string {
+	return database[key]
+}
+
+func set(key string, value string) {
+	database[key] = value
+}
+
 func backgroundRead(conn net.Conn, c chan string, connClosed chan bool) {
 	for {
 		buf := make([]byte, 512)
