@@ -1,7 +1,7 @@
 package server
 
 import (
-	"../formData"
+	"../../formData"
 	"../query"
 	"log"
 	"net"

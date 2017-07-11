@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./formData"
+	"../formData"
 	"bufio"
 	"fmt"
 	"io"
