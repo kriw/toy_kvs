@@ -1,7 +1,7 @@
 package server
 
 import (
-	"../../formData"
+	"../../tkvs_protocol"
 	"../query"
 	"log"
 	"net"
@@ -43,12 +43,12 @@ func requestHandler(conn net.Conn) {
 		select {
 		case query := <-rx:
 			response := handleQuery(query)
-			sendData := formData.FormData{formData.OK, response}
-			send(formData.Serialize(sendData))
+			sendData := tkvs_protocol.Protocol{tkvs_protocol.OK, response}
+			send(tkvs_protocol.Serialize(sendData))
 		case <-timeout:
 			//send timeout message
-			sendData := formData.FormData{formData.CLOSE, ""}
-			send(formData.Serialize(sendData))
+			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, ""}
+			send(tkvs_protocol.Serialize(sendData))
 			println("timeout")
 			return
 		case <-connClosed:

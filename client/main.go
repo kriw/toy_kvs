@@ -1,7 +1,7 @@
 package main
 
 import (
-	"../formData"
+	"../tkvs_protocol"
 	"bufio"
 	"fmt"
 	"io"
@@ -17,9 +17,9 @@ func reader(r io.Reader, ch chan bool) {
 		if err != nil {
 			return
 		}
-		data := formData.Deserialize(buf[0:n])
+		data := tkvs_protocol.Deserialize(buf[0:n])
 		switch data.DataKind {
-		case formData.CLOSE:
+		case tkvs_protocol.CLOSE:
 			ch <- false
 		default:
 			print(data.Data)
