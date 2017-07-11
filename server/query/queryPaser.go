@@ -4,20 +4,20 @@ import (
 	"strings"
 )
 
-type QueryKind int
+type QueryMethod int
 
 const (
-	GET QueryKind = iota
+	GET QueryMethod = iota
 	SET
 	Unknown
 )
 
 type Query struct {
-	Op   QueryKind
+	Op   QueryMethod
 	Args []string
 }
 
-func parseOp(op string) QueryKind {
+func parseOp(op string) QueryMethod {
 	switch op {
 	case "get":
 		return GET
