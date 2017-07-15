@@ -1,0 +1,43 @@
+package tkvs_protocol
+
+import (
+	"bytes"
+	"encoding/gob"
+	"fmt"
+)
+
+type RequestMethod byte
+
+const (
+	GET RequestMethod = iota
+	SET
+	OK
+	CLOSE
+	ERROR
+)
+
+type Protocol struct {
+	Method RequestMethod
+	Key    []byte
+	Data   []byte
+}
+
+func Serialize(data Protocol) []byte {
+	b := bytes.Buffer{}
+	e := gob.NewEncoder(&b)
+	if err := e.Encode(data); err != nil {
+		fmt.Println(`failed gob Encode`, err)
+	}
+	return b.Bytes()
+}
+
+func Deserialize(data []byte) Protocol {
+	m := Protocol{}
+	b := bytes.Buffer{}
+	b.Write(data)
+	dec := gob.NewDecoder(&b)
+	if err := dec.Decode(&m); err != nil {
+		fmt.Println(`failed gob Decode`, err)
+	}
+	return m
+}

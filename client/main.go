@@ -1,55 +1,107 @@
 package main
 
 import (
-	"./formData"
+	"../tkvs_protocol"
+	"./query"
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 )
 
-func reader(r io.Reader, ch chan bool) {
+func readFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
+	for s.Scan() {
+		if err := s.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		}
+		iCh <- s.Text()
+	}
+	isClosed <- true
+}
+
+func readFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 	buf := make([]byte, 1024)
 	for {
 		n, err := r.Read(buf[:])
 		if err != nil {
 			return
 		}
-		data := formData.Deserialize(buf[0:n])
-		switch data.DataKind {
-		case formData.CLOSE:
-			ch <- false
-		default:
-			print(data.Data)
+		res := tkvs_protocol.Deserialize(buf[0:n])
+		switch res.Method {
+		case tkvs_protocol.CLOSE:
+			srvInput <- "Connection has been closed"
+			isClosed <- true
+		case tkvs_protocol.OK:
+			if len(res.Data) == 0 {
+				srvInput <- "OK"
+			} else {
+				srvInput <- string(res.Data)
+				println("data: " + string(res.Data))
+			}
+		case tkvs_protocol.ERROR:
+			srvInput <- "ERROR"
 		}
 	}
+}
+
+func handleQuery(queryStr string) tkvs_protocol.Protocol {
+	q := query.Parse(queryStr)
+	switch q.Op {
+	case query.GET:
+		if len(q.Args) == 1 {
+			key, data := q.Args[0], make([]byte, 0)
+			return tkvs_protocol.Protocol{tkvs_protocol.GET, key, data}
+		}
+	case query.SET:
+		if len(q.Args) == 2 {
+			key, data := q.Args[0], q.Args[1]
+			return tkvs_protocol.Protocol{tkvs_protocol.SET, key, data}
+		}
+	case query.SETFILE:
+		if len(q.Args) == 2 {
+			key, filename := q.Args[0], string(q.Args[1])
+			if filedata, err := ioutil.ReadFile(filename); err == nil {
+				return tkvs_protocol.Protocol{tkvs_protocol.SET, key, filedata}
+			}
+		}
+	}
+	b := make([]byte, 0)
+	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, b, b}
 }
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	c, err := net.Dial("unix", "/tmp/echo.sock")
-	isConnecting := make(chan bool)
+	isClosed := make(chan bool)
+	srvInput := make(chan string)
+	usrInput := make(chan string)
 	if err != nil {
 		panic(err)
 	}
 	defer c.Close()
 
-	go reader(c, isConnecting)
-	for scanner.Scan() {
+	go readFromSrv(c, srvInput, isClosed)
+	go readFromUsr(scanner, usrInput, isClosed)
+
+	for {
+		print("> ")
 		select {
-		case t := <-isConnecting:
-			if !t {
-				return
-			}
-		default:
-			if _, err := c.Write([]byte(scanner.Text())); err != nil {
-				log.Fatal("write error:", err)
-				break
-			}
-			if err := scanner.Err(); err != nil {
-				fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		case <-isClosed:
+			return
+		case input := <-srvInput:
+			println(input)
+		case input := <-usrInput:
+			if q := handleQuery(input); q.Method == tkvs_protocol.ERROR {
+				println("Error Input: " + input)
+			} else {
+				p := tkvs_protocol.Serialize(q)
+				if _, err := c.Write(p); err != nil {
+					log.Fatal("write error:", err)
+					break
+				}
 			}
 		}
 	}

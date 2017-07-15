@@ -1,14 +1,23 @@
 package server
 
 import (
-	"../formData"
-	"../query"
+	"../../tkvs_protocol"
 	"log"
 	"net"
 	"time"
 )
 
-func backgroundRead(conn net.Conn, c chan string, connClosed chan bool) {
+var database = make(map[string][]byte)
+
+func get(key string) []byte {
+	return database[key]
+}
+
+func set(key string, value []byte) {
+	database[key] = value
+}
+
+func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 	for {
 		buf := make([]byte, 512)
 		nr, err := conn.Read(buf)
@@ -16,12 +25,12 @@ func backgroundRead(conn net.Conn, c chan string, connClosed chan bool) {
 			connClosed <- true
 			return
 		}
-		c <- string(buf[0:nr])
+		c <- buf[0:nr]
 	}
 }
 
 func requestHandler(conn net.Conn) {
-	rx := make(chan string)
+	rx := make(chan []byte)
 	connClosed := make(chan bool)
 	go backgroundRead(conn, rx, connClosed)
 	send := func(msg []byte) {
@@ -37,18 +46,16 @@ func requestHandler(conn net.Conn) {
 			timeout <- true
 		}()
 
-		//send prefix
-		send([]byte("> "))
-
 		select {
-		case query := <-rx:
-			response := handleQuery(query)
-			sendData := formData.FormData{formData.OK, response}
-			send(formData.Serialize(sendData))
+		case rawReq := <-rx:
+			req := tkvs_protocol.Deserialize(rawReq)
+			response := handleReq(req)
+			send(tkvs_protocol.Serialize(response))
 		case <-timeout:
 			//send timeout message
-			sendData := formData.FormData{formData.CLOSE, ""}
-			send(formData.Serialize(sendData))
+			b := make([]byte, 0)
+			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, b, b}
+			send(tkvs_protocol.Serialize(sendData))
 			println("timeout")
 			return
 		case <-connClosed:
@@ -57,26 +64,23 @@ func requestHandler(conn net.Conn) {
 	}
 }
 
-func handleQuery(queryStr string) string {
-	q := query.Parse(queryStr)
-	switch q.Op {
-	case query.GET:
-		if len(q.Args) == 0 {
-			return "Error\n"
-		} else {
-			return get(q.Args[0]) + "\n"
-		}
-	case query.SET:
-		if len(q.Args) <= 1 {
-			return "Error\n"
-		} else {
-			key, value := q.Args[0], q.Args[1]
-			set(key, value)
-			return "OK\n"
-		}
-	default:
-		return "Unknown query.\n"
+func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
+	empty := make([]byte, 0)
+	method := req.Method
+	key := string(req.Key)
+	data := req.Data
+	switch method {
+	case tkvs_protocol.GET:
+		res := get(string(key))
+		return tkvs_protocol.Protocol{tkvs_protocol.OK, empty, res}
+	case tkvs_protocol.SET:
+		value := data
+		set(key, value)
+		return tkvs_protocol.Protocol{tkvs_protocol.OK, empty, empty}
+	case tkvs_protocol.CLOSE:
+		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empty, empty}
 	}
+	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empty, empty}
 }
 
 func Serve(connType, laddr string) {
