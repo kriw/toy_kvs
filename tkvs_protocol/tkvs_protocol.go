@@ -1,7 +1,5 @@
 package tkvs_protocol
 
-//HACKME better name of this package
-
 type RequestMethod byte
 
 const (
@@ -11,8 +9,6 @@ const (
 	CLOSE
 	ERROR
 )
-
-// const NilProto = Protocol{NIL}
 
 type Protocol struct {
 	Method RequestMethod
