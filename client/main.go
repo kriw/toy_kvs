@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func readUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
+func readFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
 	for s.Scan() {
 		if err := s.Err(); err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
@@ -21,7 +21,7 @@ func readUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
 	isClosed <- true
 }
 
-func readSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
+func readFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 	buf := make([]byte, 1024)
 	for {
 		n, err := r.Read(buf[:])
@@ -49,13 +49,16 @@ func handleQuery(queryStr string) tkvs_protocol.Protocol {
 	q := query.Parse(queryStr)
 	switch q.Op {
 	case query.GET:
-		return tkvs_protocol.Protocol{tkvs_protocol.GET, q.Args[0]}
+		if len(q.Args) == 1 {
+			return tkvs_protocol.Protocol{tkvs_protocol.GET, q.Args[0]}
+		}
 	case query.SET:
-		key, value := q.Args[0], q.Args[1]
-		return tkvs_protocol.Protocol{tkvs_protocol.SET, key + "," + value}
-	default:
-		return tkvs_protocol.Protocol{}
+		if len(q.Args) == 2 {
+			key, value := q.Args[0], q.Args[1]
+			return tkvs_protocol.Protocol{tkvs_protocol.SET, key + "," + value}
+		}
 	}
+	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, ""}
 }
 
 func main() {
@@ -69,8 +72,8 @@ func main() {
 	}
 	defer c.Close()
 
-	go readSrv(c, srvInput, isClosed)
-	go readUsr(scanner, usrInput, isClosed)
+	go readFromSrv(c, srvInput, isClosed)
+	go readFromUsr(scanner, usrInput, isClosed)
 
 	for {
 		print("> ")
@@ -80,11 +83,14 @@ func main() {
 		case input := <-srvInput:
 			println(input)
 		case input := <-usrInput:
-			q := handleQuery(input)
-			p := tkvs_protocol.Serialize(q)
-			if _, err := c.Write(p); err != nil {
-				log.Fatal("write error:", err)
-				break
+			if q := handleQuery(input); q.Method == tkvs_protocol.ERROR {
+				println("Error Input: " + input)
+			} else {
+				p := tkvs_protocol.Serialize(q)
+				if _, err := c.Write(p); err != nil {
+					log.Fatal("write error:", err)
+					break
+				}
 			}
 		}
 	}
