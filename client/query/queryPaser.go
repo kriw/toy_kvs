@@ -9,12 +9,13 @@ type QueryMethod int
 const (
 	GET QueryMethod = iota
 	SET
+	SETFILE
 	Unknown
 )
 
 type Query struct {
 	Op   QueryMethod
-	Args []string
+	Args [][]byte
 }
 
 func parseOp(op string) QueryMethod {
@@ -23,6 +24,8 @@ func parseOp(op string) QueryMethod {
 		return GET
 	case "set":
 		return SET
+	case "setfile":
+		return SETFILE
 	default:
 		return Unknown
 	}
@@ -38,6 +41,11 @@ func trimEach(strs []string) []string {
 func Parse(queryStr string) Query {
 	strs := strings.Split(queryStr, " ")
 	strs = trimEach(strs)
-	op, args := strs[0], strs[1:]
+	println(queryStr)
+	op, argsStr := strs[0], strs[1:]
+	args := make([][]byte, 0)
+	for _, a := range argsStr {
+		args = append(args, []byte(a))
+	}
 	return Query{parseOp(op), args}
 }

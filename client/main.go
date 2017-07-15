@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -34,10 +35,11 @@ func readFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 			srvInput <- "Connection has been closed"
 			isClosed <- true
 		case tkvs_protocol.OK:
-			if res.Data == "" {
+			if len(res.Data) == 0 {
 				srvInput <- "OK"
 			} else {
-				srvInput <- res.Data
+				srvInput <- string(res.Data)
+				println("data: " + string(res.Data))
 			}
 		case tkvs_protocol.ERROR:
 			srvInput <- "ERROR"
@@ -50,15 +52,24 @@ func handleQuery(queryStr string) tkvs_protocol.Protocol {
 	switch q.Op {
 	case query.GET:
 		if len(q.Args) == 1 {
-			return tkvs_protocol.Protocol{tkvs_protocol.GET, q.Args[0]}
+			key, data := q.Args[0], make([]byte, 0)
+			return tkvs_protocol.Protocol{tkvs_protocol.GET, key, data}
 		}
 	case query.SET:
 		if len(q.Args) == 2 {
-			key, value := q.Args[0], q.Args[1]
-			return tkvs_protocol.Protocol{tkvs_protocol.SET, key + "," + value}
+			key, data := q.Args[0], q.Args[1]
+			return tkvs_protocol.Protocol{tkvs_protocol.SET, key, data}
+		}
+	case query.SETFILE:
+		if len(q.Args) == 2 {
+			key, filename := q.Args[0], string(q.Args[1])
+			if filedata, err := ioutil.ReadFile(filename); err == nil {
+				return tkvs_protocol.Protocol{tkvs_protocol.SET, key, filedata}
+			}
 		}
 	}
-	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, ""}
+	b := make([]byte, 0)
+	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, b, b}
 }
 
 func main() {

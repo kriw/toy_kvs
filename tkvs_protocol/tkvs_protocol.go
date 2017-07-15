@@ -1,5 +1,11 @@
 package tkvs_protocol
 
+import (
+	"bytes"
+	"encoding/gob"
+	"fmt"
+)
+
 type RequestMethod byte
 
 const (
@@ -12,13 +18,26 @@ const (
 
 type Protocol struct {
 	Method RequestMethod
-	Data   string
+	Key    []byte
+	Data   []byte
 }
 
 func Serialize(data Protocol) []byte {
-	return append([]byte(data.Data), byte(data.Method))
+	b := bytes.Buffer{}
+	e := gob.NewEncoder(&b)
+	if err := e.Encode(data); err != nil {
+		fmt.Println(`failed gob Encode`, err)
+	}
+	return b.Bytes()
 }
 
 func Deserialize(data []byte) Protocol {
-	return Protocol{RequestMethod(data[len(data)-1]), string(data[0 : len(data)-1])}
+	m := Protocol{}
+	b := bytes.Buffer{}
+	b.Write(data)
+	dec := gob.NewDecoder(&b)
+	if err := dec.Decode(&m); err != nil {
+		fmt.Println(`failed gob Decode`, err)
+	}
+	return m
 }

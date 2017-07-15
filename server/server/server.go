@@ -4,17 +4,16 @@ import (
 	"../../tkvs_protocol"
 	"log"
 	"net"
-	"strings"
 	"time"
 )
 
-var database = make(map[string]string)
+var database = make(map[string][]byte)
 
-func get(key string) string {
+func get(key string) []byte {
 	return database[key]
 }
 
-func set(key string, value string) {
+func set(key string, value []byte) {
 	database[key] = value
 }
 
@@ -54,7 +53,8 @@ func requestHandler(conn net.Conn) {
 			send(tkvs_protocol.Serialize(response))
 		case <-timeout:
 			//send timeout message
-			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, ""}
+			b := make([]byte, 0)
+			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, b, b}
 			send(tkvs_protocol.Serialize(sendData))
 			println("timeout")
 			return
@@ -65,22 +65,22 @@ func requestHandler(conn net.Conn) {
 }
 
 func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
+	empty := make([]byte, 0)
 	method := req.Method
+	key := string(req.Key)
 	data := req.Data
 	switch method {
 	case tkvs_protocol.GET:
-		res := get(data)
-		return tkvs_protocol.Protocol{tkvs_protocol.OK, res}
+		res := get(string(key))
+		return tkvs_protocol.Protocol{tkvs_protocol.OK, empty, res}
 	case tkvs_protocol.SET:
-		if ds := strings.Split(data, ","); len(ds) == 2 {
-			key, value := ds[0], ds[1]
-			set(key, value)
-			return tkvs_protocol.Protocol{tkvs_protocol.OK, ""}
-		}
+		value := data
+		set(key, value)
+		return tkvs_protocol.Protocol{tkvs_protocol.OK, empty, empty}
 	case tkvs_protocol.CLOSE:
-		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, ""}
+		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empty, empty}
 	}
-	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, ""}
+	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empty, empty}
 }
 
 func Serve(connType, laddr string) {
