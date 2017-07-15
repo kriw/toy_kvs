@@ -2,24 +2,27 @@ package tkvs_protocol
 
 //HACKME better name of this package
 
-type RequestKind byte
+type RequestMethod byte
 
 const (
-	GET RequestKind = iota
+	GET RequestMethod = iota
 	SET
 	OK
 	CLOSE
+	ERROR
 )
 
+// const NilProto = Protocol{NIL}
+
 type Protocol struct {
-	DataKind RequestKind
-	Data     string
+	Method RequestMethod
+	Data   string
 }
 
 func Serialize(data Protocol) []byte {
-	return append([]byte(data.Data), byte(data.DataKind))
+	return append([]byte(data.Data), byte(data.Method))
 }
 
 func Deserialize(data []byte) Protocol {
-	return Protocol{RequestKind(data[len(data)-1]), string(data[0 : len(data)-1])}
+	return Protocol{RequestMethod(data[len(data)-1]), string(data[0 : len(data)-1])}
 }
