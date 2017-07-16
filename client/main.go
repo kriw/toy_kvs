@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-func readFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
+func readInputFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
 	for s.Scan() {
 		if err := s.Err(); err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
@@ -22,7 +22,7 @@ func readFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
 	isClosed <- true
 }
 
-func readFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
+func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 	buf := make([]byte, 1024)
 	for {
 		n, err := r.Read(buf[:])
@@ -39,7 +39,6 @@ func readFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 				srvInput <- "OK"
 			} else {
 				srvInput <- string(res.Data)
-				println("data: " + string(res.Data))
 			}
 		case tkvs_protocol.ERROR:
 			srvInput <- "ERROR"
@@ -75,16 +74,16 @@ func handleQuery(queryStr string) tkvs_protocol.Protocol {
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	c, err := net.Dial("unix", "/tmp/echo.sock")
-	isClosed := make(chan bool)
-	srvInput := make(chan string)
-	usrInput := make(chan string)
 	if err != nil {
 		panic(err)
 	}
+	isClosed := make(chan bool)
+	srvInput := make(chan string)
+	usrInput := make(chan string)
 	defer c.Close()
 
-	go readFromSrv(c, srvInput, isClosed)
-	go readFromUsr(scanner, usrInput, isClosed)
+	go readMsgFromSrv(c, srvInput, isClosed)
+	go readInputFromUsr(scanner, usrInput, isClosed)
 
 	for {
 		print("> ")

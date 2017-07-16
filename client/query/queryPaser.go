@@ -41,7 +41,6 @@ func trimEach(strs []string) []string {
 func Parse(queryStr string) Query {
 	strs := strings.Split(queryStr, " ")
 	strs = trimEach(strs)
-	println(queryStr)
 	op, argsStr := strs[0], strs[1:]
 	args := make([][]byte, 0)
 	for _, a := range argsStr {
