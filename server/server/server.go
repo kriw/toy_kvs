@@ -2,24 +2,28 @@ package server
 
 import (
 	"../../tkvs_protocol"
+	"../../util"
+	"crypto/sha256"
 	"log"
 	"net"
 	"time"
 )
 
-var database = make(map[string][]byte)
+const BUF_SIZE = 50 * 1024 * 1024
 
-func get(key string) []byte {
+var database = make(map[[util.HashSize]byte][]byte)
+
+func get(key [util.HashSize]byte) []byte {
 	return database[key]
 }
 
-func set(key string, value []byte) {
+func set(key [util.HashSize]byte, value []byte) {
 	database[key] = value
 }
 
 func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
+	buf := make([]byte, BUF_SIZE)
 	for {
-		buf := make([]byte, 512)
 		nr, err := conn.Read(buf)
 		if err != nil {
 			connClosed <- true
@@ -42,7 +46,7 @@ func requestHandler(conn net.Conn) {
 		//set timeout
 		timeout := make(chan bool, 1)
 		go func() {
-			time.Sleep(10 * time.Second)
+			time.Sleep(100 * time.Second)
 			timeout <- true
 		}()
 
@@ -53,8 +57,9 @@ func requestHandler(conn net.Conn) {
 			send(tkvs_protocol.Serialize(response))
 		case <-timeout:
 			//send timeout message
-			b := make([]byte, 0)
-			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, b, b}
+			empKey := [util.HashSize]byte{}
+			empData := make([]byte, 0)
+			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empKey, empData}
 			send(tkvs_protocol.Serialize(sendData))
 			println("timeout")
 			return
@@ -65,22 +70,22 @@ func requestHandler(conn net.Conn) {
 }
 
 func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
-	empty := make([]byte, 0)
+	empKey := [util.HashSize]byte{}
+	empData := make([]byte, 0)
 	method := req.Method
-	key := string(req.Key)
-	data := req.Data
 	switch method {
 	case tkvs_protocol.GET:
-		res := get(string(key))
-		return tkvs_protocol.Protocol{tkvs_protocol.OK, empty, res}
+		res := get(req.Key)
+		return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, res}
 	case tkvs_protocol.SET:
-		value := data
-		set(key, value)
-		return tkvs_protocol.Protocol{tkvs_protocol.OK, empty, empty}
+		if hashedData := sha256.Sum256(req.Data); hashedData == req.Key {
+			set(req.Key, req.Data)
+			return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
+		}
 	case tkvs_protocol.CLOSE:
-		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empty, empty}
+		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empKey, empData}
 	}
-	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empty, empty}
+	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
 }
 
 func Serve(connType, laddr string) {

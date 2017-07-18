@@ -9,7 +9,6 @@ type QueryMethod int
 const (
 	GET QueryMethod = iota
 	SET
-	SETFILE
 	Unknown
 )
 
@@ -24,8 +23,6 @@ func parseOp(op string) QueryMethod {
 		return GET
 	case "set":
 		return SET
-	case "setfile":
-		return SETFILE
 	default:
 		return Unknown
 	}

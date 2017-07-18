@@ -1,6 +1,7 @@
 package tkvs_protocol
 
 import (
+	"../util"
 	"bytes"
 	"encoding/gob"
 	"fmt"
@@ -18,7 +19,7 @@ const (
 
 type Protocol struct {
 	Method RequestMethod
-	Key    []byte
+	Key    [util.HashSize]byte
 	Data   []byte
 }
 
