@@ -4,12 +4,13 @@ import (
 	"../../tkvs_protocol"
 	"../../util"
 	"crypto/sha256"
+	"fmt"
 	"log"
 	"net"
 	"time"
 )
 
-const BUF_SIZE = 50 * 1024 * 1024
+const BUF_SIZE = 1024 * 1024 * 1024
 
 var database = make(map[[util.HashSize]byte][]byte)
 
@@ -79,6 +80,7 @@ func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
 		return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, res}
 	case tkvs_protocol.SET:
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Key {
+			fmt.Printf("%x", hashedData)
 			set(req.Key, req.Data)
 			return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
 		}
