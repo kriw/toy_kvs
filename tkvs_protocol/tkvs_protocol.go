@@ -13,6 +13,7 @@ const (
 	GET RequestMethod = iota
 	SET
 	OK
+	SAVE
 	CLOSE
 	ERROR
 )
