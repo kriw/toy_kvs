@@ -26,6 +26,10 @@ $ ./run.sh client
 > get 11586d2eb43b73e539caa3d158c883336c0e2c904b309c0c5ffe2c9b83d562a1
 > This is a test.
 
+> save poyo
+> OK
 >
 $ rm po.txt
+$ ls | grep poyo
+poyo*
 ```
