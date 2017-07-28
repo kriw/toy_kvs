@@ -6,8 +6,9 @@ Simple key value store for homework of Security-Camp2017.
 
 ## Server
 ```bash
-./run.sh server
+./run.sh server [endpoint]
 ```
+* The default endpoint is `/tmp/tmp.sock`.
 
 ## Client
 ```shell
