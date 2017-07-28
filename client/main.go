@@ -75,13 +75,20 @@ func handleQuery(queryStr string) tkvs_protocol.Protocol {
 				return tkvs_protocol.Protocol{tkvs_protocol.SET, key, filedata}
 			}
 		}
+	case query.SAVE:
+		return tkvs_protocol.Protocol{tkvs_protocol.SAVE, [util.HashSize]byte{}, make([]byte, 0)}
 	}
+
 	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, [util.HashSize]byte{}, make([]byte, 0)}
 }
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	c, err := net.Dial("unix", "/tmp/echo.sock")
+	endpoint := "/tmp/tmp.sock"
+	if len(os.Args) > 1 {
+		endpoint = os.Args[1]
+	}
+	c, err := net.Dial("unix", endpoint)
 	if err != nil {
 		panic(err)
 	}
