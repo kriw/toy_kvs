@@ -107,6 +107,8 @@ func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
 		return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
 	case tkvs_protocol.CLOSE:
 		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empKey, empData}
+	case tkvs_protocol.ERROR:
+		return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
 	}
 	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
 }
