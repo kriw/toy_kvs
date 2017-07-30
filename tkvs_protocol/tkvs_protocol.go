@@ -1,6 +1,7 @@
 package tkvs_protocol
 
 import (
+	"../util"
 	"bytes"
 	"encoding/gob"
 	"fmt"
@@ -12,13 +13,14 @@ const (
 	GET RequestMethod = iota
 	SET
 	OK
+	SAVE
 	CLOSE
 	ERROR
 )
 
 type Protocol struct {
 	Method RequestMethod
-	Key    []byte
+	Key    [util.HashSize]byte
 	Data   []byte
 }
 
@@ -38,6 +40,8 @@ func Deserialize(data []byte) Protocol {
 	dec := gob.NewDecoder(&b)
 	if err := dec.Decode(&m); err != nil {
 		fmt.Println(`failed gob Decode`, err)
+		return Protocol{ERROR, [util.HashSize]byte{}, make([]byte, 0)}
+	} else {
+		return m
 	}
-	return m
 }
