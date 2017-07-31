@@ -87,7 +87,7 @@ func handleQuery(queryStr string) tkvs_protocol.Protocol {
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	endpoint := "/tmp/echo.sock"
+	endpoint := "/tmp/tmp.sock"
 	if len(os.Args) > 1 {
 		endpoint = os.Args[1]
 	}

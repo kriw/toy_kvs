@@ -6,10 +6,20 @@ else
 fi
 
 if test $cmd == "server"; then
-    [[ -e /tmp/echo.sock ]] && rm /tmp/echo.sock
-    go run server/main.go
+    arg=$2
+    if [ "$arg" == "" ]; then
+        arg='/tmp/tmp.sock'
+    fi
+    [[ -e $arg ]] && rm $arg
+    go run server/main.go $arg
+    [[ -e $arg ]] && rm $arg
+
 elif test $cmd == "client"; then
-    go run client/main.go
+    arg=$2
+    if [ "$arg" == "" ]; then
+        arg='/tmp/tmp.sock'
+    fi
+    go run client/main.go $arg
 else
     echo "Usage $0 [client|server]"
 fi
