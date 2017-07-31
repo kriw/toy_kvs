@@ -18,7 +18,7 @@ const BUF_SIZE = 1024 * 1024 * 1024
 
 var database = make(map[[util.HashSize]byte][]byte)
 
-func save() {
+func save(filename string) {
 	toBytes := func(data map[[util.HashSize]byte][]byte) []byte {
 		b := bytes.Buffer{}
 		e := gob.NewEncoder(&b)
@@ -29,7 +29,7 @@ func save() {
 	}
 
 	content := toBytes(database)
-	ioutil.WriteFile("./gofile", content, os.ModePerm)
+	ioutil.WriteFile(filename, content, os.ModePerm)
 }
 
 func get(key [util.HashSize]byte) []byte {
@@ -103,10 +103,12 @@ func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
 			return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
 		}
 	case tkvs_protocol.SAVE:
-		save()
+		save(string(req.Data))
 		return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
 	case tkvs_protocol.CLOSE:
 		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empKey, empData}
+	case tkvs_protocol.ERROR:
+		return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
 	}
 	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
 }

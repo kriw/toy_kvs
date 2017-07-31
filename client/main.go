@@ -76,7 +76,10 @@ func handleQuery(queryStr string) tkvs_protocol.Protocol {
 			}
 		}
 	case query.SAVE:
-		return tkvs_protocol.Protocol{tkvs_protocol.SAVE, [util.HashSize]byte{}, make([]byte, 0)}
+		if len(q.Args) == 1 {
+			filename := q.Args[0]
+			return tkvs_protocol.Protocol{tkvs_protocol.SAVE, [util.HashSize]byte{}, filename}
+		}
 	}
 
 	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, [util.HashSize]byte{}, make([]byte, 0)}

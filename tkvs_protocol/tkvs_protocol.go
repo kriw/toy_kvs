@@ -40,6 +40,8 @@ func Deserialize(data []byte) Protocol {
 	dec := gob.NewDecoder(&b)
 	if err := dec.Decode(&m); err != nil {
 		fmt.Println(`failed gob Decode`, err)
+		return Protocol{ERROR, [util.HashSize]byte{}, make([]byte, 0)}
+	} else {
+		return m
 	}
-	return m
 }
