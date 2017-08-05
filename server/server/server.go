@@ -1,7 +1,7 @@
 package server
 
 import (
-	"../../tkvs_protocol"
+	"../../tkvsProtocol"
 	"../../util"
 	"bytes"
 	"crypto/sha256"
@@ -71,15 +71,15 @@ func requestHandler(conn net.Conn) {
 
 		select {
 		case rawReq := <-rx:
-			req := tkvs_protocol.Deserialize(rawReq)
+			req := tkvsProtocol.Deserialize(rawReq)
 			response := handleReq(req)
-			send(tkvs_protocol.Serialize(response))
+			send(tkvsProtocol.Serialize(response))
 		case <-timeout:
 			//send timeout message
 			empKey := [util.HashSize]byte{}
 			empData := make([]byte, 0)
-			sendData := tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empKey, empData}
-			send(tkvs_protocol.Serialize(sendData))
+			sendData := tkvsProtocol.Protocol{tkvsProtocol.CLOSE, empKey, empData}
+			send(tkvsProtocol.Serialize(sendData))
 			println("timeout")
 			return
 		case <-connClosed:
@@ -88,29 +88,29 @@ func requestHandler(conn net.Conn) {
 	}
 }
 
-func handleReq(req tkvs_protocol.Protocol) tkvs_protocol.Protocol {
+func handleReq(req tkvsProtocol.Protocol) tkvsProtocol.Protocol {
 	empKey := [util.HashSize]byte{}
 	empData := make([]byte, 0)
 	method := req.Method
 	switch method {
-	case tkvs_protocol.GET:
+	case tkvsProtocol.GET:
 		res := get(req.Key)
-		return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, res}
-	case tkvs_protocol.SET:
+		return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, res}
+	case tkvsProtocol.SET:
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Key {
 			fmt.Printf("%x", hashedData)
 			set(req.Key, req.Data)
-			return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
+			return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, empData}
 		}
-	case tkvs_protocol.SAVE:
+	case tkvsProtocol.SAVE:
 		save(string(req.Data))
-		return tkvs_protocol.Protocol{tkvs_protocol.OK, empKey, empData}
-	case tkvs_protocol.CLOSE:
-		return tkvs_protocol.Protocol{tkvs_protocol.CLOSE, empKey, empData}
-	case tkvs_protocol.ERROR:
-		return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
+		return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, empData}
+	case tkvsProtocol.CLOSE:
+		return tkvsProtocol.Protocol{tkvsProtocol.CLOSE, empKey, empData}
+	case tkvsProtocol.ERROR:
+		return tkvsProtocol.Protocol{tkvsProtocol.ERROR, empKey, empData}
 	}
-	return tkvs_protocol.Protocol{tkvs_protocol.ERROR, empKey, empData}
+	return tkvsProtocol.Protocol{tkvsProtocol.ERROR, empKey, empData}
 }
 
 func Serve(connType, laddr string) {
