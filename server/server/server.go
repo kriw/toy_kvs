@@ -3,6 +3,7 @@ package server
 import (
 	"../../tkvsProtocol"
 	"../../util"
+	"../malScan"
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
@@ -37,6 +38,12 @@ func get(key [util.HashSize]byte) []byte {
 }
 
 func set(key [util.HashSize]byte, value []byte) {
+	m := malScan.Scan(value)
+	if len(m) > 0 {
+		println("match!")
+	} else {
+		println("not match")
+	}
 	database[key] = value
 }
 
