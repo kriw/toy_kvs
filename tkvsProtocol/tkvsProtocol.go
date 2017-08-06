@@ -1,4 +1,4 @@
-package tkvs_protocol
+package tkvsProtocol
 
 import (
 	"../util"

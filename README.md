@@ -2,6 +2,11 @@
 
 Simple key value store for homework of Security-Camp2017.
 
+# Requirement
+
+## yara
+See https://github.com/hillu/go-yara .
+
 # Usage
 
 ## Server
