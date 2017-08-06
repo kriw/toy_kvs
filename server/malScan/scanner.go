@@ -14,7 +14,7 @@ const (
 	EXT = "yara"
 )
 
-var rules = make([](*yara.Rules), 0)
+var rules [](*yara.Rules)
 var watcher *fsnotify.Watcher
 
 func Scan(file []byte) []yara.MatchRule {
@@ -28,6 +28,7 @@ func Scan(file []byte) []yara.MatchRule {
 }
 
 func ConstructRules() {
+	rules = make([](*yara.Rules), 0)
 	fileList, _ := ioutil.ReadDir(DIR)
 	for _, file := range fileList {
 		fileName := file.Name()
