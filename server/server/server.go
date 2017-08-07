@@ -104,7 +104,6 @@ func handleReq(req tkvsProtocol.Protocol) tkvsProtocol.Protocol {
 		return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, res}
 	case tkvsProtocol.SET:
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Key {
-			fmt.Printf("%x", hashedData)
 			set(req.Key, req.Data)
 			return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, empData}
 		}
