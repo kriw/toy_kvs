@@ -20,14 +20,6 @@ See https://github.com/hillu/go-yara .
 ./run.sh client
 ```
 
-## Benchmark
-```bash
-./run.sh benchmark
-client-num: 2, repeats: 5, elapsed: 17.904102ms
-
-./run.sh benchmark -client-num=1 -repeats=3
-client-num: 1, repeats: 3, elapsed: 8.942194ms
-```
 
 ## Example
 

@@ -20,6 +20,9 @@ elif test $cmd == "client"; then
         arg='/tmp/tmp.sock'
     fi
     go run client/main.go $arg
+elif test $cmd == "benchmark"; then
+    go run benchmark/main.go ${@:2}
+    [[ -e '/tmp/tmp.sock' ]] && rm /tmp/tmp.sock
 else
     echo "Usage $0 [client|server]"
 fi
