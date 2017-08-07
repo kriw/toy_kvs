@@ -40,10 +40,8 @@ func get(key [util.HashSize]byte) []byte {
 
 func set(key [util.HashSize]byte, value []byte) {
 	match := malScan.Scan(value)
-	if len(match) > 0 {
-		for _, m := range match {
-			scanLog.Write(m.Rule, key)
-		}
+	for _, m := range match {
+		scanLog.Write(m.Rule, key)
 	}
 	database[key] = value
 }
