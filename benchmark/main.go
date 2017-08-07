@@ -55,9 +55,11 @@ func getDataSet(fileDir string) {
 }
 
 func applyArgs() {
-	clientNum = *flag.Int("client-num", 2, "an int")
-	repeats = *flag.Int("repeats", 5, "an int")
-	fileDir = *flag.String("file", "./benchmark/files", "a string")
+	flag.IntVar(&clientNum, "client-num", 2, "an int")
+	flag.IntVar(&repeats, "repeats", 5, "an int")
+	flag.StringVar(&fileDir, "file", "./benchmark/files", "a string")
+	flag.Parse()
+	println(clientNum, repeats, fileDir)
 }
 
 func do() {
