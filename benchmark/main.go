@@ -59,7 +59,6 @@ func applyArgs() {
 	flag.IntVar(&repeats, "repeats", 5, "an int")
 	flag.StringVar(&fileDir, "file", "./benchmark/files", "a string")
 	flag.Parse()
-	println(clientNum, repeats, fileDir)
 }
 
 func do() {
