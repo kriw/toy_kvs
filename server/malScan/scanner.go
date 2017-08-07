@@ -2,6 +2,7 @@ package malScan
 
 import (
 	"../../util"
+	"../scanLog"
 	"fmt"
 	"github.com/go-fsnotify/fsnotify"
 	"github.com/hillu/go-yara"
@@ -18,13 +19,14 @@ var rules [](*yara.Rules)
 var watcher *fsnotify.Watcher
 
 func Scan(file []byte) []yara.MatchRule {
+	matches := make([]yara.MatchRule, 0)
 	for _, r := range rules {
 		m, _ := r.ScanMem(file, 0, 0)
 		if len(m) > 0 {
-			return m
+			matches = append(matches, m...)
 		}
 	}
-	return make([]yara.MatchRule, 0)
+	return matches
 }
 
 func ConstructRules() {
@@ -48,6 +50,8 @@ func ConstructRules() {
 func RunRuleWatcher() {
 	watcher, _ = fsnotify.NewWatcher()
 	defer watcher.Close()
+	scanLog.NewLogger()
+	defer scanLog.CloseLog()
 	watcher.Add(DIR)
 	for {
 		select {
@@ -64,8 +68,9 @@ func RunRuleWatcher() {
 func handleWatchEvent(op fsnotify.Op) {
 	switch op {
 	case fsnotify.Write:
-		ConstructRules()
+		fallthrough
 	case fsnotify.Remove:
 		ConstructRules()
+		scanLog.ChangeLogger()
 	}
 }

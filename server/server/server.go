@@ -4,6 +4,7 @@ import (
 	"../../tkvsProtocol"
 	"../../util"
 	"../malScan"
+	"../scanLog"
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
@@ -38,11 +39,9 @@ func get(key [util.HashSize]byte) []byte {
 }
 
 func set(key [util.HashSize]byte, value []byte) {
-	m := malScan.Scan(value)
-	if len(m) > 0 {
-		println("match!")
-	} else {
-		println("not match")
+	match := malScan.Scan(value)
+	for _, m := range match {
+		scanLog.Write(m.Rule, key)
 	}
 	database[key] = value
 }
@@ -121,6 +120,9 @@ func handleReq(req tkvsProtocol.Protocol) tkvsProtocol.Protocol {
 }
 
 func Serve(connType, laddr string) {
+	malScan.ConstructRules()
+	go malScan.RunRuleWatcher()
+
 	l, err := net.Listen(connType, laddr)
 	if err != nil {
 		log.Fatal("listen error:", err)
