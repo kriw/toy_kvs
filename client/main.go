@@ -85,16 +85,14 @@ func handleQuery(queryStr string) tkvsProtocol.Protocol {
 	return tkvsProtocol.Protocol{tkvsProtocol.ERROR, [util.HashSize]byte{}, make([]byte, 0)}
 }
 
-func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-	endpoint := "/tmp/tmp.sock"
-	if len(os.Args) > 1 {
-		endpoint = os.Args[1]
-	}
+func ClientMain(r io.Reader, endpoint string) {
+	scanner := bufio.NewScanner(r)
+
 	c, err := net.Dial("unix", endpoint)
 	if err != nil {
 		panic(err)
 	}
+
 	isClosed := make(chan bool)
 	srvInput := make(chan string)
 	usrInput := make(chan string)
@@ -122,4 +120,12 @@ func main() {
 			}
 		}
 	}
+}
+
+func main() {
+	endpoint := "/tmp/tmp.sock"
+	if len(os.Args) > 1 {
+		endpoint = os.Args[1]
+	}
+	ClientMain(os.Stdin, endpoint)
 }
