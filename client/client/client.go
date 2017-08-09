@@ -88,11 +88,11 @@ func handleQuery(queryStr string) tkvsProtocol.Protocol {
 func ClientMain(r io.Reader, endpoint string) {
 	scanner := bufio.NewScanner(r)
 
-	c, err := net.Dial("unix", endpoint)
-	defer c.Close()
+	c, err := net.Dial("tcp", endpoint)
 	if err != nil {
 		panic(err)
 	}
+	defer c.Close()
 
 	isClosed := make(chan bool)
 	srvInput := make(chan string)
