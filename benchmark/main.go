@@ -13,7 +13,8 @@ import (
 	"time"
 )
 
-const endpoint = "/tmp/tmp.sock"
+const endpoint = "127.0.0.1:8000"
+const sock = "tcp"
 
 var (
 	fileDir   string
@@ -24,7 +25,7 @@ var (
 )
 
 func client(start chan bool, wg *sync.WaitGroup) {
-	c, err := net.Dial("unix", endpoint)
+	c, err := net.Dial(sock, endpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +76,7 @@ func do() {
 }
 
 func main() {
-	go server.Serve("unix", endpoint)
+	go server.Serve(sock, endpoint)
 	//wait for staring server
 	time.Sleep(time.Second)
 
