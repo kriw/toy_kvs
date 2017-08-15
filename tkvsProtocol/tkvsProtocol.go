@@ -4,17 +4,16 @@ import (
 	"../util"
 	"bytes"
 	"encoding/binary"
-	"encoding/gob"
-	"fmt"
 )
 
 type RequestMethod byte
 type ResponseCode byte
 
 const (
-	SIZEOF_REQ   = 1 //[byte]
-	SIZEOF_RES   = 1 //[byte]
-	SIZEOF_INT64 = 8
+	SIZEOF_METHOD   = 1 //[byte]
+	SIZEOF_RES      = 1 //[byte]
+	SIZEOF_INT64    = 8
+	HEADER_REQ_SIZE = SIZEOF_METHOD + SIZEOF_INT64 + util.HashSize
 )
 
 //For Request
@@ -40,61 +39,61 @@ type ResponseParam struct {
 }
 
 type RequestParam struct {
-	Method RequestMethod
-	Size   uint64
-	Hash   [util.HashSize]byte
-	Data   []byte
+	Method   RequestMethod
+	DataSize uint64
+	Hash     [util.HashSize]byte
+	Data     []byte
 }
 
 func GetHeader(header []byte) (byte, uint64) {
-	method := header[:SIZEOF_REQ][0]
-	sizeBytes := header[SIZEOF_REQ : SIZEOF_REQ+SIZEOF_INT64]
+	method := header[:SIZEOF_METHOD][0]
+	sizeBytes := header[SIZEOF_METHOD : SIZEOF_METHOD+SIZEOF_INT64]
 
-	size := binary.BigEndian.Uint64(sizeBytes)
+	size := binary.LittleEndian.Uint64(sizeBytes)
 	return method, size
 }
 
-func SerializeReq(data RequestParam) []byte {
-	b := bytes.Buffer{}
-	e := gob.NewEncoder(&b)
-	if err := e.Encode(data); err != nil {
-		fmt.Println(`failed gob Encode`, err)
-	}
-	return b.Bytes()
+func encodeInt64ToBytes(n uint64) []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, n)
+	return buf.Bytes()
 }
 
 //FIXME
+func SerializeReq(data RequestParam) []byte {
+	b := make([]byte, 0)
+	b = append(b, byte(data.Method))
+	b = append(b, encodeInt64ToBytes(data.DataSize)...)
+	b = append(b, data.Hash[:]...)
+	b = append(b, data.Data...)
+	return b
+}
+
 func SerializeRes(data ResponseParam) []byte {
-	b := bytes.Buffer{}
-	e := gob.NewEncoder(&b)
-	if err := e.Encode(data); err != nil {
-		fmt.Println(`failed gob Encode`, err)
-	}
-	return b.Bytes()
+	println(data.DataSize)
+	b := make([]byte, 0)
+	b = append(b, byte(data.Response))
+	b = append(b, encodeInt64ToBytes(data.DataSize)...)
+	b = append(b, data.Data...)
+	return b
 }
 
 func DeserializeReq(data []byte) RequestParam {
-	m := RequestParam{}
-	b := bytes.Buffer{}
-	b.Write(data)
-	dec := gob.NewDecoder(&b)
-	if err := dec.Decode(&m); err != nil {
-		fmt.Println(`failed gob Decode`, err)
-		return RequestParam{GET, 0, [util.HashSize]byte{}, make([]byte, 0)}
-	} else {
-		return m
-	}
+	ret := RequestParam{}
+	ret.Method = RequestMethod(data[0])
+	ret.DataSize = binary.LittleEndian.Uint64(data[1 : 1+SIZEOF_INT64])
+	tmp := 1 + SIZEOF_INT64
+	copy(ret.Hash[:], data[tmp:tmp+util.HashSize])
+	tmp = tmp + util.HashSize
+	ret.Data = data[tmp : tmp+int(ret.DataSize)]
+	return ret
 }
 
 func DeserializeRes(data []byte) ResponseParam {
-	m := ResponseParam{}
-	b := bytes.Buffer{}
-	b.Write(data)
-	dec := gob.NewDecoder(&b)
-	if err := dec.Decode(&m); err != nil {
-		fmt.Println(`failed gob Decode`, err)
-		return ResponseParam{ERROR, 0, make([]byte, 0)}
-	} else {
-		return m
-	}
+	ret := ResponseParam{}
+	ret.Response = ResponseCode(data[0])
+	ret.DataSize = binary.LittleEndian.Uint64(data[1 : 1+SIZEOF_INT64])
+	tmp := 1 + SIZEOF_INT64
+	ret.Data = data[tmp : tmp+int(ret.DataSize)]
+	return ret
 }

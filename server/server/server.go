@@ -64,7 +64,6 @@ func set(key [util.HashSize]byte, value []byte) {
 		scanLog.Write(m.Rule, key)
 	}
 	fileHashMap[key] = true
-	println("set & save")
 	save(fmt.Sprintf("%x", key[:]), value)
 }
 
@@ -78,13 +77,12 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 		}
 		//TODO case for size > BUF_SIZE
 		method, size := tkvsProtocol.GetHeader(buf[:nr])
-		fmt.Printf("method: %d, size: %d\n", method, size)
-		fmt.Printf("GET: %d, SET: %d\n", tkvsProtocol.GET, tkvsProtocol.SET)
 		switch tkvsProtocol.RequestMethod(method) {
 		case tkvsProtocol.GET:
 			c <- buf[:nr]
 		case tkvsProtocol.SET:
-			for total := uint64(nr); total < size; total += uint64(nr) {
+			wholeSize := size + tkvsProtocol.HEADER_REQ_SIZE
+			for total := uint64(nr); total < wholeSize; total += uint64(nr) {
 				nr, err = conn.Read(buf[total:])
 				if err != nil {
 					connClosed <- true
