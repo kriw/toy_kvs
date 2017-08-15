@@ -34,14 +34,14 @@ func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 		if err != nil {
 			return
 		}
-		res := tkvsProtocol.Deserialize(buf[0:n])
-		switch res.Method {
-		case tkvsProtocol.CLOSE:
-			srvInput <- "Connection has been closed"
+		res := tkvsProtocol.DeserializeRes(buf[0:n])
+		switch res.Response {
+		case tkvsProtocol.TIMEOUT:
+			srvInput <- "Timeout: Connection has been closed"
 			isClosed <- true
 		case tkvsProtocol.FILEEXIST:
 			fallthrough
-		case tkvsProtocol.OK:
+		case tkvsProtocol.SUCCESS:
 			if len(res.Data) == 0 {
 				srvInput <- "OK"
 			} else {
@@ -57,7 +57,7 @@ func checkFileSize(data []byte) bool {
 	return len(data) <= BUF_SIZE
 }
 
-func handleQuery(queryStr string) tkvsProtocol.Protocol {
+func handleQuery(queryStr string) tkvsProtocol.RequestParam {
 	q := query.Parse(queryStr)
 	switch q.Op {
 	case query.GET:
@@ -65,7 +65,7 @@ func handleQuery(queryStr string) tkvsProtocol.Protocol {
 			if key, err := hex.DecodeString(string(q.Args[0])); err == nil {
 				var key32bit [util.HashSize]byte
 				copy(key32bit[:], key)
-				return tkvsProtocol.Protocol{tkvsProtocol.GET, key32bit, make([]byte, 0)}
+				return tkvsProtocol.RequestParam{tkvsProtocol.GET, 0, key32bit, make([]byte, 0)}
 			}
 		}
 	case query.SET:
@@ -74,12 +74,12 @@ func handleQuery(queryStr string) tkvsProtocol.Protocol {
 			if filedata, err := ioutil.ReadFile(filename); err == nil {
 				key := sha256.Sum256(filedata)
 				fmt.Printf("key: %x\n", key)
-				return tkvsProtocol.Protocol{tkvsProtocol.SET, key, filedata}
+				return tkvsProtocol.RequestParam{tkvsProtocol.SET, uint64(len(filedata)), key, filedata}
 			}
 		}
 	}
 
-	return tkvsProtocol.Protocol{tkvsProtocol.ERROR, [util.HashSize]byte{}, make([]byte, 0)}
+	return tkvsProtocol.RequestParam{tkvsProtocol.GET, 0, [util.HashSize]byte{}, make([]byte, 0)}
 }
 
 func ClientMain(r io.Reader, endpoint string) {
@@ -106,10 +106,11 @@ func ClientMain(r io.Reader, endpoint string) {
 		case input := <-srvInput:
 			println(input)
 		case input := <-usrInput:
-			if q := handleQuery(input); q.Method == tkvsProtocol.ERROR {
+			//FIXME
+			if q := handleQuery(input); q.Method == tkvsProtocol.ERROR_INPUT {
 				println("Error Input: " + input)
 			} else {
-				p := tkvsProtocol.Serialize(q)
+				p := tkvsProtocol.SerializeReq(q)
 				if _, err := c.Write(p); err != nil {
 					log.Fatal("write error:", err)
 					break
