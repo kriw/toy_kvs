@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -17,11 +18,12 @@ import (
 )
 
 const BUF_SIZE = 1024 * 1024 * 1024
+const FILE_DIR = "./files/"
 
-var database = make(map[[util.HashSize]byte][]byte)
+var fileHashMap = make(map[[util.HashSize]byte]bool)
 
-func save(filename string) {
-	toBytes := func(data map[[util.HashSize]byte][]byte) []byte {
+func save(filename string, fileContent []byte) {
+	toBytes := func(data []byte) []byte {
 		b := bytes.Buffer{}
 		e := gob.NewEncoder(&b)
 		if err := e.Encode(data); err != nil {
@@ -30,12 +32,31 @@ func save(filename string) {
 		return b.Bytes()
 	}
 
-	content := toBytes(database)
-	ioutil.WriteFile(filename, content, os.ModePerm)
+	content := toBytes(fileContent)
+	ioutil.WriteFile(FILE_DIR+filename, content, os.ModePerm)
 }
 
-func get(key [util.HashSize]byte) []byte {
-	return database[key]
+func get(key [util.HashSize]byte) tkvsProtocol.Protocol {
+	filename := fmt.Sprintf("%x", key)
+	empKey := [util.HashSize]byte{}
+	if filedata, err := ioutil.ReadFile(FILE_DIR + filename); err == nil {
+		return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, filedata}
+	} else {
+		return tkvsProtocol.Protocol{tkvsProtocol.ERROR, empKey, []byte("Not Found")}
+	}
+}
+
+func registerFiles() {
+	f := func(fileName string) {
+		hash := [util.HashSize]byte{}
+		decoded, err := hex.DecodeString(fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		copy(hash[:], decoded[:util.HashSize])
+		fileHashMap[hash] = true
+	}
+	util.FilesMap(FILE_DIR, f)
 }
 
 func set(key [util.HashSize]byte, value []byte) {
@@ -43,7 +64,8 @@ func set(key [util.HashSize]byte, value []byte) {
 	for _, m := range match {
 		scanLog.Write(m.Rule, key)
 	}
-	database[key] = value
+	fileHashMap[key] = true
+	save(fmt.Sprintf("%x", key[:]), value)
 }
 
 func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
@@ -100,16 +122,21 @@ func handleReq(req tkvsProtocol.Protocol) tkvsProtocol.Protocol {
 	method := req.Method
 	switch method {
 	case tkvsProtocol.GET:
-		res := get(req.Key)
-		return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, res}
+		if fileHashMap[req.Key] {
+			return get(req.Key)
+		} else {
+			return tkvsProtocol.Protocol{tkvsProtocol.ERROR, empKey, []byte("Not Found")}
+		}
 	case tkvsProtocol.SET:
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Key {
-			set(req.Key, req.Data)
-			return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, empData}
+			if fileHashMap[req.Key] {
+				return tkvsProtocol.Protocol{tkvsProtocol.FILEEXIST, empKey, empData}
+			} else {
+				set(req.Key, req.Data)
+				fileHashMap[req.Key] = true
+				return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, empData}
+			}
 		}
-	case tkvsProtocol.SAVE:
-		save(string(req.Data))
-		return tkvsProtocol.Protocol{tkvsProtocol.OK, empKey, empData}
 	case tkvsProtocol.CLOSE:
 		return tkvsProtocol.Protocol{tkvsProtocol.CLOSE, empKey, empData}
 	case tkvsProtocol.ERROR:
@@ -119,6 +146,7 @@ func handleReq(req tkvsProtocol.Protocol) tkvsProtocol.Protocol {
 }
 
 func Serve(connType, laddr string) {
+	registerFiles()
 	malScan.ConstructRules()
 	go malScan.RunRuleWatcher()
 

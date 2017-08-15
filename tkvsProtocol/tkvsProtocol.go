@@ -13,8 +13,8 @@ const (
 	GET RequestMethod = iota
 	SET
 	OK
-	SAVE
 	CLOSE
+	FILEEXIST
 	ERROR
 )
 
