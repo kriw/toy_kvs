@@ -21,7 +21,7 @@ elif test $cmd == "client"; then
 elif test $cmd == "benchmark"; then
     go run server/main.go '127.0.0.1:8000' &
     srvId=$!
-    go run benchmark/main.go
+    go run benchmark/main.go ${@:2}
     kill -9 $srvId
 else
     echo "Usage $0 [client|server|benchmark]"

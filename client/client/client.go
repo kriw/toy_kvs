@@ -103,8 +103,6 @@ func ClientMain(r io.Reader, endpoint string) {
 		select {
 		case <-isClosed:
 			return
-		case input := <-srvInput:
-			println(input)
 		case input := <-usrInput:
 			//FIXME
 			if q := handleQuery(input); q.Method == tkvsProtocol.ERROR_INPUT {
@@ -116,6 +114,8 @@ func ClientMain(r io.Reader, endpoint string) {
 					break
 				}
 			}
+			res := <-srvInput
+			println(res)
 		}
 	}
 }
