@@ -1,7 +1,6 @@
 package main
 
 import (
-	"../server/server"
 	"../tkvsProtocol"
 	"../util"
 	"crypto/sha256"
@@ -76,10 +75,6 @@ func do() {
 }
 
 func main() {
-	go server.Serve(sock, endpoint)
-	//wait for staring server
-	time.Sleep(time.Second)
-
 	applyArgs()
 	getDataSet(fileDir)
 
