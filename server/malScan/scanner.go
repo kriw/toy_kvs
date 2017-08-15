@@ -31,20 +31,18 @@ func Scan(file []byte) []yara.MatchRule {
 
 func ConstructRules() {
 	rules = make([](*yara.Rules), 0)
-	fileList, _ := ioutil.ReadDir(DIR)
-	for _, file := range fileList {
-		fileName := file.Name()
-		if !util.MatchExt(fileName, EXT) {
-			continue
-		}
-		filedata, _ := ioutil.ReadFile(DIR + fileName)
-		r, err := yara.Compile(string(filedata), nil)
-		if err != nil {
-			log.Printf("Error loading rules: %s", fileName)
-		} else {
-			rules = append(rules, r)
+	f := func(fileName string) {
+		if util.MatchExt(fileName, EXT) {
+			filedata, _ := ioutil.ReadFile(DIR + fileName)
+			r, err := yara.Compile(string(filedata), nil)
+			if err != nil {
+				log.Printf("Error loading rules: %s", fileName)
+			} else {
+				rules = append(rules, r)
+			}
 		}
 	}
+	util.FilesMap(DIR, f)
 }
 
 func RunRuleWatcher() {

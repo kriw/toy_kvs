@@ -39,6 +39,8 @@ func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 		case tkvsProtocol.CLOSE:
 			srvInput <- "Connection has been closed"
 			isClosed <- true
+		case tkvsProtocol.FILEEXIST:
+			fallthrough
 		case tkvsProtocol.OK:
 			if len(res.Data) == 0 {
 				srvInput <- "OK"
@@ -46,7 +48,7 @@ func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 				srvInput <- string(res.Data)
 			}
 		case tkvsProtocol.ERROR:
-			srvInput <- "ERROR"
+			srvInput <- fmt.Sprintf("ERROR: %s", res.Data)
 		}
 	}
 }
@@ -74,11 +76,6 @@ func handleQuery(queryStr string) tkvsProtocol.Protocol {
 				fmt.Printf("key: %x\n", key)
 				return tkvsProtocol.Protocol{tkvsProtocol.SET, key, filedata}
 			}
-		}
-	case query.SAVE:
-		if len(q.Args) == 1 {
-			filename := q.Args[0]
-			return tkvsProtocol.Protocol{tkvsProtocol.SAVE, [util.HashSize]byte{}, filename}
 		}
 	}
 
