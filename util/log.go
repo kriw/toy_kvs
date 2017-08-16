@@ -24,6 +24,10 @@ func ResponseLog(p proto.ResponseParam) {
 	}).Info("Response: ")
 }
 
+func logFatal(err error) {
+	log.Fatal(err)
+}
+
 func init() {
 	log.Out = os.Stdout
 	log.Formatter = new(logrus.TextFormatter)

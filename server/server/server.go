@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"golang.org/x/sync/syncmap"
 	"io/ioutil"
 	"log"
 	"net"
@@ -18,7 +19,8 @@ import (
 
 const FILE_DIR = "./files/"
 
-var fileHashMap = make(map[[proto.HashSize]byte]bool)
+// var fileHashMap = make(map[[proto.HashSize]byte]bool)
+var fileHashMap = new(syncmap.Map)
 
 func save(filename string, fileContent []byte) {
 	ioutil.WriteFile(FILE_DIR+"/"+filename, fileContent, os.ModePerm)
@@ -42,7 +44,8 @@ func registerFiles() {
 			log.Fatal(err)
 		}
 		copy(hash[:], decoded[:proto.HashSize])
-		fileHashMap[hash] = true
+		fileHashMap.Store(hash, true)
+		// fileHashMap[hash] = true
 	}
 	util.FilesMap(FILE_DIR, f)
 }
@@ -52,7 +55,8 @@ func set(key [proto.HashSize]byte, value []byte) {
 	for _, m := range match {
 		scanLog.Write(m.Rule, key)
 	}
-	fileHashMap[key] = true
+	fileHashMap.Store(key, true)
+	// fileHashMap[hash] = true
 	save(fmt.Sprintf("%x", key[:]), value)
 }
 
@@ -61,6 +65,7 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 	for {
 		nr, err := conn.Read(headerBuf)
 		if err != nil {
+			// util.logFatal(err)
 			connClosed <- true
 			return
 		}
@@ -146,7 +151,9 @@ func handleReq(req proto.RequestParam) proto.ResponseParam {
 	method := req.Method
 	switch method {
 	case proto.GET:
-		if fileHashMap[req.Hash] {
+		// if fileHashMap[req.Hash] {
+		_, ok := fileHashMap.Load(req.Hash)
+		if ok {
 			return get(req.Hash)
 		} else {
 			NotFound := []byte("Not Found")
@@ -154,11 +161,14 @@ func handleReq(req proto.RequestParam) proto.ResponseParam {
 		}
 	case proto.SET:
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Hash {
-			if fileHashMap[req.Hash] {
+			_, ok := fileHashMap.Load(req.Hash)
+			if ok {
+				// if fileHashMap[req.Hash] {
 				return proto.ResponseParam{proto.FILEEXIST, 0, empData}
 			} else {
 				set(req.Hash, req.Data)
-				fileHashMap[req.Hash] = true
+				// fileHashMap[req.Hash] = true
+				fileHashMap.Store(req.Hash, true)
 				return proto.ResponseParam{proto.SUCCESS, 0, empData}
 			}
 		}

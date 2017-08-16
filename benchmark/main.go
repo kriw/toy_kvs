@@ -9,24 +9,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"sync"
 	"time"
 )
 
 const (
-	endpoint = "127.0.0.1:8000"
-	sock     = "tcp"
+	endpoint  = "127.0.0.1:8000"
+	sock      = "tcp"
+	clientMax = 128
 )
 
 var (
-	fileDir   string
-	repeats   int
-	clientNum int
-	dataSet   [][]byte
-	keys      [][proto.HashSize]byte
+	fileDir        string
+	repeats        int
+	clientNum      int
+	clientParallel int
+	dataSet        [][]byte
+	keys           [][proto.HashSize]byte
 )
 
-func client(start chan bool, wg *sync.WaitGroup) {
+func client(ch chan bool, data []byte, key [proto.HashSize]byte) {
 	c, err := net.Dial(sock, endpoint)
 	buf := [util.BUF_SIZE]byte{}
 	if err != nil {
@@ -34,25 +35,20 @@ func client(start chan bool, wg *sync.WaitGroup) {
 	}
 	defer c.Close()
 
-	_ = <-start
-	for i := 0; i < repeats; i++ {
-		for j, data := range dataSet {
-			q := proto.RequestParam{proto.SET, uint64(len(data)), keys[j], data}
-			p := tkvsProtocol.SerializeReq(q)
-			if _, err := c.Write(p); err != nil {
-				println("Write Error")
-				return
-			}
-			if _, err := c.Read(buf[:]); err != nil {
-				println("Read Error")
-				return
-			}
-		}
-	}
-	q := proto.RequestParam{proto.CLOSE_CLI, 0, [proto.HashSize]byte{}, make([]byte, 0)}
+	q := proto.RequestParam{proto.SET, uint64(len(data)), key, data}
 	p := tkvsProtocol.SerializeReq(q)
+	if _, err := c.Write(p); err != nil {
+		println("Write Error")
+		return
+	}
+	if _, err := c.Read(buf[:]); err != nil {
+		println("Read Error")
+		return
+	}
+	q = proto.RequestParam{proto.CLOSE_CLI, 0, [proto.HashSize]byte{}, make([]byte, 0)}
+	p = tkvsProtocol.SerializeReq(q)
 	_, _ = c.Write(p)
-	wg.Done()
+	ch <- true
 }
 
 func getDataSet(fileDir string) {
@@ -68,22 +64,41 @@ func getDataSet(fileDir string) {
 
 func applyArgs() {
 	flag.IntVar(&clientNum, "client-num", 2, "an int")
-	flag.IntVar(&repeats, "repeats", 5, "an int")
+	flag.IntVar(&clientParallel, "client-parallel", 2, "an int")
 	flag.StringVar(&fileDir, "file", "./benchmark/files", "a string")
 	flag.Parse()
 }
 
+var Padding = []byte{}
+
+func genData(index int) ([]byte, [proto.HashSize]byte) {
+	for index > 0 {
+		Padding = append(Padding, byte(index&0xff))
+		index >>= 8
+	}
+	data := append(dataSet[0], Padding...)
+	return data, sha256.Sum256(data)
+}
+
 func do() {
-	var wg sync.WaitGroup
-	start := make(chan bool)
-	for i := 0; i < clientNum; i++ {
-		wg.Add(1)
-		go client(start, &wg)
+	clientTotal := 0
+	clientSending := 0
+	ch := make(chan bool, 1)
+	for i := 0; clientNum > i; i += 1 {
+		println(clientSending)
+		clientTotal += 1
+		for clientMax <= clientSending {
+			_ = <-ch
+			clientSending -= 1
+		}
+		data, key := genData(i)
+		go client(ch, data, key)
+		clientSending += 1
 	}
-	for i := 0; i < clientNum; i++ {
-		start <- true
+	for clientSending > 0 {
+		_ = <-ch
+		clientSending -= 1
 	}
-	wg.Wait()
 }
 
 func main() {
