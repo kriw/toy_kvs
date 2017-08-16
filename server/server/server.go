@@ -90,6 +90,8 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 				}
 			}
 			c <- buf[:size]
+		case tkvsProtocol.CLOSE_CLI:
+			connClosed <- true
 		}
 	}
 }

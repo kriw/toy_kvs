@@ -102,6 +102,9 @@ func ClientMain(r io.Reader, endpoint string) {
 		print("> ")
 		select {
 		case <-isClosed:
+			q := tkvsProtocol.RequestParam{tkvsProtocol.CLOSE_CLI, 0, [util.HashSize]byte{}, make([]byte, 0)}
+			p := tkvsProtocol.SerializeReq(q)
+			_, _ = c.Write(p)
 			return
 		case input := <-usrInput:
 			//FIXME

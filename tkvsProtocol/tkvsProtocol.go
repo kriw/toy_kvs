@@ -20,6 +20,7 @@ const (
 const (
 	GET RequestMethod = iota
 	SET
+	CLOSE_CLI
 	ERROR_INPUT
 )
 
@@ -70,7 +71,6 @@ func SerializeReq(data RequestParam) []byte {
 }
 
 func SerializeRes(data ResponseParam) []byte {
-	println(data.DataSize)
 	b := make([]byte, 0)
 	b = append(b, byte(data.Response))
 	b = append(b, encodeInt64ToBytes(data.DataSize)...)

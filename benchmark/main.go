@@ -15,7 +15,6 @@ import (
 const (
 	endpoint = "127.0.0.1:8000"
 	sock     = "tcp"
-	BUF_SIZE = 256 * 1024 * 1024
 )
 
 var (
@@ -28,7 +27,7 @@ var (
 
 func client(start chan bool, wg *sync.WaitGroup) {
 	c, err := net.Dial(sock, endpoint)
-	buf := [BUF_SIZE]byte{}
+	buf := [util.BUF_SIZE]byte{}
 	if err != nil {
 		panic(err)
 	}
@@ -40,18 +39,25 @@ func client(start chan bool, wg *sync.WaitGroup) {
 			q := tkvsProtocol.RequestParam{tkvsProtocol.SET, uint64(len(data)), keys[j], data}
 			p := tkvsProtocol.SerializeReq(q)
 			if _, err := c.Write(p); err != nil {
-				break
+				println("Write Error")
+				return
 			}
-			_, _ = c.Read(buf[:])
+			if _, err := c.Read(buf[:]); err != nil {
+				println("Read Error")
+				return
+			}
 		}
 	}
+	q := tkvsProtocol.RequestParam{tkvsProtocol.CLOSE_CLI, 0, [util.HashSize]byte{}, make([]byte, 0)}
+	p := tkvsProtocol.SerializeReq(q)
+	_, _ = c.Write(p)
 	wg.Done()
 }
 
 func getDataSet(fileDir string) {
 	fileList, _ := ioutil.ReadDir(fileDir)
 	for _, file := range fileList {
-		if filedata, err := ioutil.ReadFile(file.Name()); err == nil {
+		if filedata, err := ioutil.ReadFile(fileDir + file.Name()); err == nil {
 			key := sha256.Sum256(filedata)
 			keys = append(keys, key)
 			dataSet = append(dataSet, filedata)
