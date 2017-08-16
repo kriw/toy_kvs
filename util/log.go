@@ -4,6 +4,7 @@ import (
 	"../proto"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"os"
 )
 
@@ -35,6 +36,10 @@ func logFatal(err error) {
 }
 
 func init() {
-	log.Out = os.Stdout
+	if os.Getenv("DEBUG") == "" {
+		log.Out = ioutil.Discard
+	} else {
+		log.Out = os.Stdout
+	}
 	log.Formatter = new(logrus.TextFormatter)
 }

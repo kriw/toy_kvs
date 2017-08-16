@@ -15,6 +15,11 @@ See https://github.com/hillu/go-yara .
 ```
 * The default endpoint is `/tmp/tmp.sock`.
 
+With output, 
+```bash
+DEBUG=true ./run.sh server [endpoint]
+```
+
 ## Client
 ```shell
 ./run.sh client

@@ -89,7 +89,6 @@ func do() {
 		for clientMax <= clientSending {
 			_ = <-ch
 			clientSending -= 1
-			println(clientSending)
 		}
 		data, key := genData(i)
 		go client(ch, data, key)
