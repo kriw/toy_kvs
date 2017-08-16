@@ -56,20 +56,22 @@ func set(key [util.HashSize]byte, value []byte) {
 }
 
 func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
-	buf := make([]byte, util.BUF_SIZE)
+	headerBuf := make([]byte, util.BUF_HEADER_SIZE)
 	for {
-		nr, err := conn.Read(buf)
+		nr, err := conn.Read(headerBuf)
 		if err != nil {
 			connClosed <- true
 			return
 		}
 		//TODO case for size > BUF_SIZE
-		method, size := tkvsProtocol.GetHeader(buf[:nr])
+		method, size := tkvsProtocol.GetHeader(headerBuf[:nr])
 		switch tkvsProtocol.RequestMethod(method) {
 		case tkvsProtocol.GET:
-			c <- buf[:nr]
+			c <- headerBuf[:nr]
 		case tkvsProtocol.SET:
 			wholeSize := size + tkvsProtocol.HEADER_REQ_SIZE
+			buf := make([]byte, wholeSize)
+			copy(buf, headerBuf)
 			var total uint64
 			for total = uint64(nr); total < wholeSize; total += uint64(nr) {
 				nr, err = conn.Read(buf[total:])
