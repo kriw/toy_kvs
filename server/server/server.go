@@ -5,9 +5,7 @@ import (
 	"../../util"
 	"../malScan"
 	"../scanLog"
-	"bytes"
 	"crypto/sha256"
-	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -22,22 +20,12 @@ const FILE_DIR = "./files/"
 var fileHashMap = make(map[[util.HashSize]byte]bool)
 
 func save(filename string, fileContent []byte) {
-	toBytes := func(data []byte) []byte {
-		b := bytes.Buffer{}
-		e := gob.NewEncoder(&b)
-		if err := e.Encode(data); err != nil {
-			fmt.Println(`failed gob Encode`, err)
-		}
-		return b.Bytes()
-	}
-
-	content := toBytes(fileContent)
-	ioutil.WriteFile(FILE_DIR+filename, content, os.ModePerm)
+	ioutil.WriteFile(FILE_DIR+"/"+filename, fileContent, os.ModePerm)
 }
 
 func get(key [util.HashSize]byte) tkvsProtocol.ResponseParam {
 	filename := fmt.Sprintf("%x", key)
-	if fileData, err := ioutil.ReadFile(FILE_DIR + filename); err == nil {
+	if fileData, err := ioutil.ReadFile(FILE_DIR + "/" + filename); err == nil {
 		return tkvsProtocol.ResponseParam{tkvsProtocol.SUCCESS, uint64(len(fileData)), fileData}
 	} else {
 		notFound := []byte("Not Found")
@@ -82,14 +70,18 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 			c <- buf[:nr]
 		case tkvsProtocol.SET:
 			wholeSize := size + tkvsProtocol.HEADER_REQ_SIZE
-			for total := uint64(nr); total < wholeSize; total += uint64(nr) {
+			var total uint64
+			for total = uint64(nr); total < wholeSize; total += uint64(nr) {
 				nr, err = conn.Read(buf[total:])
 				if err != nil {
 					connClosed <- true
 					return
 				}
+				if nr == 0 {
+					break
+				}
 			}
-			c <- buf[:size]
+			c <- buf[:total]
 		case tkvsProtocol.CLOSE_CLI:
 			connClosed <- true
 			return
@@ -97,8 +89,14 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 	}
 }
 
+var ii = 0
+
 func requestHandler(conn net.Conn) {
 	defer conn.Close()
+	defer func() {
+		ii += 1
+		println("Closed", ii)
+	}()
 	rx := make(chan []byte)
 	connClosed := make(chan bool)
 	go backgroundRead(conn, rx, connClosed)
@@ -112,7 +110,7 @@ func requestHandler(conn net.Conn) {
 		timeout := make(chan bool, 1)
 		needClose := make(chan bool, 1)
 		go func(needClose chan bool) {
-			for counter := 0; counter < 10; counter += 1 {
+			for counter := 0; counter < 100; counter += 1 {
 				time.Sleep(1 * time.Second)
 				select {
 				case <-needClose:

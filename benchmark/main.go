@@ -92,6 +92,6 @@ func main() {
 	startTime := time.Now()
 	do()
 	elapsed := time.Since(startTime)
-	fmt.Printf("client-num: %d, repeats: %d, elapsed: %s", clientNum, repeats, elapsed.String())
+	fmt.Printf("client-num: %d, repeats: %d, elapsed: %s\n", clientNum, repeats, elapsed.String())
 
 }

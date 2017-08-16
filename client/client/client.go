@@ -15,8 +15,6 @@ import (
 	"os"
 )
 
-const BUF_SIZE = 20 * 1024 * 1024
-
 func readInputFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
 	for s.Scan() {
 		if err := s.Err(); err != nil {
@@ -28,7 +26,7 @@ func readInputFromUsr(s *bufio.Scanner, iCh chan string, isClosed chan bool) {
 }
 
 func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
-	buf := make([]byte, BUF_SIZE)
+	buf := make([]byte, util.BUF_SIZE)
 	for {
 		n, err := r.Read(buf[:])
 		if err != nil {
@@ -54,7 +52,7 @@ func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 }
 
 func checkFileSize(data []byte) bool {
-	return len(data) <= BUF_SIZE
+	return len(data) <= util.BUF_SIZE
 }
 
 func handleQuery(queryStr string) tkvsProtocol.RequestParam {
