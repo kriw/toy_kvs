@@ -1,6 +1,7 @@
 package main
 
 import (
+	"../proto"
 	"../tkvsProtocol"
 	"../util"
 	"crypto/sha256"
@@ -22,7 +23,7 @@ var (
 	repeats   int
 	clientNum int
 	dataSet   [][]byte
-	keys      [][util.HashSize]byte
+	keys      [][proto.HashSize]byte
 )
 
 func client(start chan bool, wg *sync.WaitGroup) {
@@ -36,7 +37,7 @@ func client(start chan bool, wg *sync.WaitGroup) {
 	_ = <-start
 	for i := 0; i < repeats; i++ {
 		for j, data := range dataSet {
-			q := tkvsProtocol.RequestParam{tkvsProtocol.SET, uint64(len(data)), keys[j], data}
+			q := proto.RequestParam{proto.SET, uint64(len(data)), keys[j], data}
 			p := tkvsProtocol.SerializeReq(q)
 			if _, err := c.Write(p); err != nil {
 				println("Write Error")
@@ -48,7 +49,7 @@ func client(start chan bool, wg *sync.WaitGroup) {
 			}
 		}
 	}
-	q := tkvsProtocol.RequestParam{tkvsProtocol.CLOSE_CLI, 0, [util.HashSize]byte{}, make([]byte, 0)}
+	q := proto.RequestParam{proto.CLOSE_CLI, 0, [proto.HashSize]byte{}, make([]byte, 0)}
 	p := tkvsProtocol.SerializeReq(q)
 	_, _ = c.Write(p)
 	wg.Done()

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"../../proto"
 	"../../tkvsProtocol"
 	"../../util"
 	"../query"
@@ -34,18 +35,18 @@ func readMsgFromSrv(r io.Reader, srvInput chan string, isClosed chan bool) {
 		}
 		res := tkvsProtocol.DeserializeRes(buf[0:n])
 		switch res.Response {
-		case tkvsProtocol.TIMEOUT:
+		case proto.TIMEOUT:
 			srvInput <- "Timeout: Connection has been closed"
 			isClosed <- true
-		case tkvsProtocol.FILEEXIST:
+		case proto.FILEEXIST:
 			fallthrough
-		case tkvsProtocol.SUCCESS:
+		case proto.SUCCESS:
 			if len(res.Data) == 0 {
 				srvInput <- "OK"
 			} else {
 				srvInput <- string(res.Data)
 			}
-		case tkvsProtocol.ERROR:
+		case proto.ERROR:
 			srvInput <- fmt.Sprintf("ERROR: %s", res.Data)
 		}
 	}
@@ -55,15 +56,15 @@ func checkFileSize(data []byte) bool {
 	return len(data) <= util.BUF_SIZE
 }
 
-func handleQuery(queryStr string) tkvsProtocol.RequestParam {
+func handleQuery(queryStr string) proto.RequestParam {
 	q := query.Parse(queryStr)
 	switch q.Op {
 	case query.GET:
 		if len(q.Args) == 1 {
 			if key, err := hex.DecodeString(string(q.Args[0])); err == nil {
-				var key32bit [util.HashSize]byte
+				var key32bit [proto.HashSize]byte
 				copy(key32bit[:], key)
-				return tkvsProtocol.RequestParam{tkvsProtocol.GET, 0, key32bit, make([]byte, 0)}
+				return proto.RequestParam{proto.GET, 0, key32bit, make([]byte, 0)}
 			}
 		}
 	case query.SET:
@@ -72,12 +73,12 @@ func handleQuery(queryStr string) tkvsProtocol.RequestParam {
 			if filedata, err := ioutil.ReadFile(filename); err == nil {
 				key := sha256.Sum256(filedata)
 				fmt.Printf("key: %x\n", key)
-				return tkvsProtocol.RequestParam{tkvsProtocol.SET, uint64(len(filedata)), key, filedata}
+				return proto.RequestParam{proto.SET, uint64(len(filedata)), key, filedata}
 			}
 		}
 	}
 
-	return tkvsProtocol.RequestParam{tkvsProtocol.GET, 0, [util.HashSize]byte{}, make([]byte, 0)}
+	return proto.RequestParam{proto.GET, 0, [proto.HashSize]byte{}, make([]byte, 0)}
 }
 
 func ClientMain(r io.Reader, endpoint string) {
@@ -100,13 +101,13 @@ func ClientMain(r io.Reader, endpoint string) {
 		print("> ")
 		select {
 		case <-isClosed:
-			q := tkvsProtocol.RequestParam{tkvsProtocol.CLOSE_CLI, 0, [util.HashSize]byte{}, make([]byte, 0)}
+			q := proto.RequestParam{proto.CLOSE_CLI, 0, [proto.HashSize]byte{}, make([]byte, 0)}
 			p := tkvsProtocol.SerializeReq(q)
 			_, _ = c.Write(p)
 			return
 		case input := <-usrInput:
 			//FIXME
-			if q := handleQuery(input); q.Method == tkvsProtocol.ERROR_INPUT {
+			if q := handleQuery(input); q.Method == proto.ERROR_INPUT {
 				println("Error Input: " + input)
 			} else {
 				p := tkvsProtocol.SerializeReq(q)

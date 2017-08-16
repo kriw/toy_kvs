@@ -1,6 +1,7 @@
 package server
 
 import (
+	"../../proto"
 	"../../tkvsProtocol"
 	"../../util"
 	"../malScan"
@@ -17,36 +18,36 @@ import (
 
 const FILE_DIR = "./files/"
 
-var fileHashMap = make(map[[util.HashSize]byte]bool)
+var fileHashMap = make(map[[proto.HashSize]byte]bool)
 
 func save(filename string, fileContent []byte) {
 	ioutil.WriteFile(FILE_DIR+"/"+filename, fileContent, os.ModePerm)
 }
 
-func get(key [util.HashSize]byte) tkvsProtocol.ResponseParam {
+func get(key [proto.HashSize]byte) proto.ResponseParam {
 	filename := fmt.Sprintf("%x", key)
 	if fileData, err := ioutil.ReadFile(FILE_DIR + "/" + filename); err == nil {
-		return tkvsProtocol.ResponseParam{tkvsProtocol.SUCCESS, uint64(len(fileData)), fileData}
+		return proto.ResponseParam{proto.SUCCESS, uint64(len(fileData)), fileData}
 	} else {
 		notFound := []byte("Not Found")
-		return tkvsProtocol.ResponseParam{tkvsProtocol.ERROR, uint64(len(notFound)), notFound}
+		return proto.ResponseParam{proto.ERROR, uint64(len(notFound)), notFound}
 	}
 }
 
 func registerFiles() {
 	f := func(fileName string) {
-		hash := [util.HashSize]byte{}
+		hash := [proto.HashSize]byte{}
 		decoded, err := hex.DecodeString(fileName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		copy(hash[:], decoded[:util.HashSize])
+		copy(hash[:], decoded[:proto.HashSize])
 		fileHashMap[hash] = true
 	}
 	util.FilesMap(FILE_DIR, f)
 }
 
-func set(key [util.HashSize]byte, value []byte) {
+func set(key [proto.HashSize]byte, value []byte) {
 	match := malScan.Scan(value)
 	for _, m := range match {
 		scanLog.Write(m.Rule, key)
@@ -65,11 +66,11 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 		}
 		//TODO case for size > BUF_SIZE
 		method, size := tkvsProtocol.GetHeader(headerBuf[:nr])
-		switch tkvsProtocol.RequestMethod(method) {
-		case tkvsProtocol.GET:
+		switch proto.RequestMethod(method) {
+		case proto.GET:
 			c <- headerBuf[:nr]
-		case tkvsProtocol.SET:
-			wholeSize := size + tkvsProtocol.HEADER_REQ_SIZE
+		case proto.SET:
+			wholeSize := size + proto.HEADER_REQ_SIZE
 			buf := make([]byte, wholeSize)
 			copy(buf, headerBuf)
 			var total uint64
@@ -84,21 +85,15 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 				}
 			}
 			c <- buf[:total]
-		case tkvsProtocol.CLOSE_CLI:
+		case proto.CLOSE_CLI:
 			connClosed <- true
 			return
 		}
 	}
 }
 
-var ii = 0
-
 func requestHandler(conn net.Conn) {
 	defer conn.Close()
-	defer func() {
-		ii += 1
-		println("Closed", ii)
-	}()
 	rx := make(chan []byte)
 	connClosed := make(chan bool)
 	go backgroundRead(conn, rx, connClosed)
@@ -126,13 +121,17 @@ func requestHandler(conn net.Conn) {
 		select {
 		case rawReq := <-rx:
 			req := tkvsProtocol.DeserializeReq(rawReq)
+			util.RequestLog(req)
 			response := handleReq(req)
-			send(tkvsProtocol.SerializeRes(response))
+			sendData := tkvsProtocol.SerializeRes(response)
+			util.ResponseLog(response)
+			send(sendData)
 			needClose <- true
 		case <-timeout:
 			//send timeout message
 			empData := make([]byte, 0)
-			sendData := tkvsProtocol.ResponseParam{tkvsProtocol.TIMEOUT, 0, empData}
+			sendData := proto.ResponseParam{proto.TIMEOUT, 0, empData}
+			util.ResponseLog(sendData)
 			send(tkvsProtocol.SerializeRes(sendData))
 			println("timeout")
 			return
@@ -142,29 +141,29 @@ func requestHandler(conn net.Conn) {
 	}
 }
 
-func handleReq(req tkvsProtocol.RequestParam) tkvsProtocol.ResponseParam {
+func handleReq(req proto.RequestParam) proto.ResponseParam {
 	empData := make([]byte, 0)
 	method := req.Method
 	switch method {
-	case tkvsProtocol.GET:
+	case proto.GET:
 		if fileHashMap[req.Hash] {
 			return get(req.Hash)
 		} else {
 			NotFound := []byte("Not Found")
-			return tkvsProtocol.ResponseParam{tkvsProtocol.ERROR, uint64(len(NotFound)), NotFound}
+			return proto.ResponseParam{proto.ERROR, uint64(len(NotFound)), NotFound}
 		}
-	case tkvsProtocol.SET:
+	case proto.SET:
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Hash {
 			if fileHashMap[req.Hash] {
-				return tkvsProtocol.ResponseParam{tkvsProtocol.FILEEXIST, 0, empData}
+				return proto.ResponseParam{proto.FILEEXIST, 0, empData}
 			} else {
 				set(req.Hash, req.Data)
 				fileHashMap[req.Hash] = true
-				return tkvsProtocol.ResponseParam{tkvsProtocol.SUCCESS, 0, empData}
+				return proto.ResponseParam{proto.SUCCESS, 0, empData}
 			}
 		}
 	}
-	return tkvsProtocol.ResponseParam{tkvsProtocol.ERROR, 0, empData}
+	return proto.ResponseParam{proto.ERROR, 0, empData}
 }
 
 func Serve(connType, laddr string) {

@@ -1,7 +1,7 @@
 package scanLog
 
 import (
-	"../../util"
+	"../../proto"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +12,7 @@ import (
 var logger log.Logger
 var logFile *os.File
 
-func Write(ruleName string, hash [util.HashSize]byte) {
+func Write(ruleName string, hash [proto.HashSize]byte) {
 	hashStr := fmt.Sprintf("%x", hash)
 	logger.Printf("ruleName:%s, hash:%s\n", ruleName, hashStr)
 }

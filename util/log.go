@@ -1,26 +1,27 @@
 package util
 
 import (
-	"../tkvsProtocol"
-	log "github.com/sirupsen/logrus"
+	"../proto"
+	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
 var log = logrus.New()
 
-func RequestLog(proto tkvsProtocol.RequestParam) {
-	log.WithFields(log.Fields{
-		"Method": tkvsProtocol.RequestToStr(proto.Method),
-		"Size":   proto.DataSize,
-		"Hash":   fmt.Sprintf("%x", proto.Hash),
-	}).Info("A walrus appears")
+func RequestLog(p proto.RequestParam) {
+	log.WithFields(logrus.Fields{
+		"Method": proto.MethodToStr(p.Method),
+		"Size":   p.DataSize,
+		"Hash":   fmt.Sprintf("%x", p.Hash),
+	}).Info("Request: ")
 }
-func ResponseLog(proto tkvsProtocol.ResponseParam) {
-	log.WithFields(log.Fields{
-		"Response Code": tkvsProtocol.RequestToStr(proto.Response),
-		"Size":          proto.DataSize,
-		"Hash":          fmt.Sprintf("%x", proto.Hash),
-	}).Info("A walrus appears")
+
+func ResponseLog(p proto.ResponseParam) {
+	log.WithFields(logrus.Fields{
+		"Response Code": proto.ResponseToStr(p.Response),
+		"Size":          p.DataSize,
+	}).Info("Response: ")
 }
 
 func init() {
