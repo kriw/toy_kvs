@@ -54,6 +54,35 @@ func GetHeader(header []byte) (byte, uint64) {
 	return method, size
 }
 
+func RequestToStr(req RequestParam) string {
+	switch res {
+	case GET:
+		return "Get"
+	case SET:
+		return "Set"
+	case CLOSE_CLI:
+		return "Close Client"
+	case ERROR_INPUT:
+		return "Error Input"
+	}
+	return "Unknow"
+}
+func ResponseToStr(res ResponseCode) string {
+	switch res {
+	case SUCCESS:
+		return "Success"
+	case NOTFOUND:
+		return "Not Found"
+	case FILEEXIST:
+		return "File Exist"
+	case TIMEOUT:
+		return "Time out"
+	case ERROR:
+		return "Error"
+	}
+	return "Unknow"
+}
+
 func encodeInt64ToBytes(n uint64) []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, n)
