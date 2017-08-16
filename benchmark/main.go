@@ -57,7 +57,7 @@ func client(start chan bool, wg *sync.WaitGroup) {
 func getDataSet(fileDir string) {
 	fileList, _ := ioutil.ReadDir(fileDir)
 	for _, file := range fileList {
-		if filedata, err := ioutil.ReadFile(fileDir + file.Name()); err == nil {
+		if filedata, err := ioutil.ReadFile(fileDir + "/" + file.Name()); err == nil {
 			key := sha256.Sum256(filedata)
 			keys = append(keys, key)
 			dataSet = append(dataSet, filedata)
@@ -93,4 +93,5 @@ func main() {
 	do()
 	elapsed := time.Since(startTime)
 	fmt.Printf("client-num: %d, repeats: %d, elapsed: %s", clientNum, repeats, elapsed.String())
+
 }

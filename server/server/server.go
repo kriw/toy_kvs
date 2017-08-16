@@ -92,11 +92,13 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 			c <- buf[:size]
 		case tkvsProtocol.CLOSE_CLI:
 			connClosed <- true
+			return
 		}
 	}
 }
 
 func requestHandler(conn net.Conn) {
+	defer conn.Close()
 	rx := make(chan []byte)
 	connClosed := make(chan bool)
 	go backgroundRead(conn, rx, connClosed)
@@ -108,16 +110,25 @@ func requestHandler(conn net.Conn) {
 	for {
 		//set timeout
 		timeout := make(chan bool, 1)
-		go func() {
-			time.Sleep(100 * time.Second)
+		needClose := make(chan bool, 1)
+		go func(needClose chan bool) {
+			for counter := 0; counter < 10; counter += 1 {
+				time.Sleep(1 * time.Second)
+				select {
+				case <-needClose:
+					break
+				default:
+				}
+			}
 			timeout <- true
-		}()
+		}(needClose)
 
 		select {
 		case rawReq := <-rx:
 			req := tkvsProtocol.DeserializeReq(rawReq)
 			response := handleReq(req)
 			send(tkvsProtocol.SerializeRes(response))
+			needClose <- true
 		case <-timeout:
 			//send timeout message
 			empData := make([]byte, 0)
@@ -152,10 +163,6 @@ func handleReq(req tkvsProtocol.RequestParam) tkvsProtocol.ResponseParam {
 				return tkvsProtocol.ResponseParam{tkvsProtocol.SUCCESS, 0, empData}
 			}
 		}
-		// case tkvsProtocol.CLOSE:
-		// 	return tkvsProtocol.ResponseParam{tkvsProtocol.CLOSE, empKey, empData}
-		// case tkvsProtocol.ERROR:
-		// 	return tkvsProtocol.ResponseParam{tkvsProtocol.ERROR, empKey, empData}
 	}
 	return tkvsProtocol.ResponseParam{tkvsProtocol.ERROR, 0, empData}
 }
