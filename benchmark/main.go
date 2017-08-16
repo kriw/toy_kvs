@@ -15,7 +15,7 @@ import (
 const (
 	endpoint  = "127.0.0.1:8000"
 	sock      = "tcp"
-	clientMax = 128
+	clientMax = 8
 )
 
 var (
@@ -85,11 +85,11 @@ func do() {
 	clientSending := 0
 	ch := make(chan bool, 1)
 	for i := 0; clientNum > i; i += 1 {
-		println(clientSending)
 		clientTotal += 1
 		for clientMax <= clientSending {
 			_ = <-ch
 			clientSending -= 1
+			println(clientSending)
 		}
 		data, key := genData(i)
 		go client(ch, data, key)

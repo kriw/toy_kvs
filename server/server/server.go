@@ -56,8 +56,9 @@ func set(key [proto.HashSize]byte, value []byte) {
 		scanLog.Write(m.Rule, key)
 	}
 	fileHashMap.Store(key, true)
-	// fileHashMap[hash] = true
-	save(fmt.Sprintf("%x", key[:]), value)
+	fileName := fmt.Sprintf("%x", key[:])
+	util.SaveLog(fileName)
+	save(fileName, value)
 }
 
 func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {

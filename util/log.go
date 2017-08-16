@@ -24,6 +24,12 @@ func ResponseLog(p proto.ResponseParam) {
 	}).Info("Response: ")
 }
 
+func SaveLog(fileName string) {
+	log.WithFields(logrus.Fields{
+		"File Name": fileName,
+	}).Info("Save File: ")
+}
+
 func logFatal(err error) {
 	log.Fatal(err)
 }
