@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -70,7 +69,7 @@ func handleQuery(queryStr string) proto.RequestParam {
 	case query.SET:
 		if len(q.Args) == 1 {
 			filename := string(q.Args[0])
-			if filedata, err := ioutil.ReadFile(filename); err == nil {
+			if filedata, err := util.ReadFile(filename); err == nil {
 				key := sha256.Sum256(filedata)
 				fmt.Printf("key: %x\n", key)
 				return proto.RequestParam{proto.SET, uint64(len(filedata)), key, filedata}

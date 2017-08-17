@@ -7,6 +7,9 @@ Simple key value store for homework of Security-Camp2017.
 ## yara
 See https://github.com/hillu/go-yara .
 
+## directIO
+See https://github.com/ncw/directio
+
 # Usage
 
 ## Server

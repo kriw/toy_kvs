@@ -10,10 +10,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"golang.org/x/sync/syncmap"
-	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"time"
 )
 
@@ -23,12 +21,12 @@ const FILE_DIR = "./files/"
 var fileHashMap = new(syncmap.Map)
 
 func save(filename string, fileContent []byte) {
-	ioutil.WriteFile(FILE_DIR+"/"+filename, fileContent, os.ModePerm)
+	util.WriteFile(FILE_DIR+"/"+filename, fileContent)
 }
 
 func get(key [proto.HashSize]byte) proto.ResponseParam {
 	filename := fmt.Sprintf("%x", key)
-	if fileData, err := ioutil.ReadFile(FILE_DIR + "/" + filename); err == nil {
+	if fileData, err := util.ReadFile(FILE_DIR + "/" + filename); err == nil {
 		return proto.ResponseParam{proto.SUCCESS, uint64(len(fileData)), fileData}
 	} else {
 		notFound := []byte("Not Found")

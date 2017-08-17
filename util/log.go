@@ -31,8 +31,8 @@ func SaveLog(fileName string) {
 	}).Info("Save File: ")
 }
 
-func logFatal(err error) {
-	log.Fatal(err)
+func LogFatal(message string, err error) {
+	log.Fatal(message, err)
 }
 
 func init() {

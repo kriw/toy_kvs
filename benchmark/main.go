@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"time"
 )
@@ -52,9 +51,9 @@ func client(ch chan bool, data []byte, key [proto.HashSize]byte) {
 }
 
 func getDataSet(fileDir string) {
-	fileList, _ := ioutil.ReadDir(fileDir)
+	fileList, _ := util.ReadDir(fileDir)
 	for _, file := range fileList {
-		if filedata, err := ioutil.ReadFile(fileDir + "/" + file.Name()); err == nil {
+		if filedata, err := util.ReadFile(fileDir + "/" + file.Name()); err == nil {
 			key := sha256.Sum256(filedata)
 			keys = append(keys, key)
 			dataSet = append(dataSet, filedata)
