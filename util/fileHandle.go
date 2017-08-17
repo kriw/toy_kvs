@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var isDirect = true
+var isDirect = os.Getenv("DIRECT") != ""
 
 func align(n int) (aligned int) {
 	n >>= 1
