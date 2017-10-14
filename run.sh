@@ -5,6 +5,10 @@ else
     cmd=$1
 fi
 
+if [ ! -e files ] ; then
+    mkdir files
+fi
+
 if [ ! -e logFiles ] ; then
     mkdir logFiles
 fi
