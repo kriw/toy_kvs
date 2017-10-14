@@ -17,7 +17,6 @@ import (
 
 const FILE_DIR = "./files/"
 
-// var fileHashMap = make(map[[proto.HashSize]byte]bool)
 var fileHashMap = new(syncmap.Map)
 
 func save(filename string, fileContent []byte) {
@@ -43,7 +42,6 @@ func registerFiles() {
 		}
 		copy(hash[:], decoded[:proto.HashSize])
 		fileHashMap.Store(hash, true)
-		// fileHashMap[hash] = true
 	}
 	util.FilesMap(FILE_DIR, f)
 }
@@ -64,7 +62,7 @@ func backgroundRead(conn net.Conn, c chan []byte, connClosed chan bool) {
 	for {
 		nr, err := conn.Read(headerBuf)
 		if err != nil {
-			// util.logFatal(err)
+			util.LogFatal("Read Error conn.Read: ", err)
 			connClosed <- true
 			return
 		}
@@ -100,28 +98,37 @@ func requestHandler(conn net.Conn) {
 	defer conn.Close()
 	rx := make(chan []byte)
 	connClosed := make(chan bool)
+	connAlive := true
 	go backgroundRead(conn, rx, connClosed)
 	send := func(msg []byte) {
 		if _, err := conn.Write(msg); err != nil {
 			log.Fatal("Write: ", err)
 		}
 	}
-	for {
-		//set timeout
-		timeout := make(chan bool, 1)
-		needClose := make(chan bool, 1)
-		go func(needClose chan bool) {
-			for counter := 0; counter < 100; counter += 1 {
-				time.Sleep(1 * time.Second)
+	//set timeout
+	timeout := make(chan bool, 1)
+	resetTimeout := make(chan bool, 1)
+	go func() {
+		for {
+			for counter := 0; counter < 100*1000; counter += 1 {
+				if !connAlive {
+					return
+				}
 				select {
-				case <-needClose:
-					break
+				case <-resetTimeout:
+					counter = 0
+					continue
 				default:
+					time.Sleep(1 * time.Millisecond)
+					continue
 				}
 			}
 			timeout <- true
-		}(needClose)
+			return
+		}
+	}()
 
+	for {
 		select {
 		case rawReq := <-rx:
 			req := tkvsProtocol.DeserializeReq(rawReq)
@@ -130,7 +137,7 @@ func requestHandler(conn net.Conn) {
 			sendData := tkvsProtocol.SerializeRes(response)
 			util.ResponseLog(response)
 			send(sendData)
-			needClose <- true
+			resetTimeout <- true
 		case <-timeout:
 			//send timeout message
 			empData := make([]byte, 0)
@@ -140,6 +147,7 @@ func requestHandler(conn net.Conn) {
 			println("timeout")
 			return
 		case <-connClosed:
+			connAlive = false
 			return
 		}
 	}
@@ -150,7 +158,6 @@ func handleReq(req proto.RequestParam) proto.ResponseParam {
 	method := req.Method
 	switch method {
 	case proto.GET:
-		// if fileHashMap[req.Hash] {
 		_, ok := fileHashMap.Load(req.Hash)
 		if ok {
 			return get(req.Hash)
@@ -162,11 +169,9 @@ func handleReq(req proto.RequestParam) proto.ResponseParam {
 		if hashedData := sha256.Sum256(req.Data); hashedData == req.Hash {
 			_, ok := fileHashMap.Load(req.Hash)
 			if ok {
-				// if fileHashMap[req.Hash] {
 				return proto.ResponseParam{proto.FILEEXIST, 0, empData}
 			} else {
 				set(req.Hash, req.Data)
-				// fileHashMap[req.Hash] = true
 				fileHashMap.Store(req.Hash, true)
 				return proto.ResponseParam{proto.SUCCESS, 0, empData}
 			}

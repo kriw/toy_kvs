@@ -14,7 +14,6 @@ import (
 const (
 	endpoint  = "127.0.0.1:8000"
 	sock      = "tcp"
-	clientMax = 8
 )
 
 var (
@@ -63,7 +62,7 @@ func getDataSet(fileDir string) {
 
 func applyArgs() {
 	flag.IntVar(&clientNum, "client-num", 2, "an int")
-	flag.IntVar(&clientParallel, "client-parallel", 2, "an int")
+	flag.IntVar(&clientParallel, "client-parallel", 8, "an int")
 	flag.StringVar(&fileDir, "file", "./benchmark/files", "a string")
 	flag.Parse()
 }
@@ -85,7 +84,7 @@ func do() {
 	ch := make(chan bool, 1)
 	for i := 0; clientNum > i; i += 1 {
 		clientTotal += 1
-		for clientMax <= clientSending {
+		for clientParallel <= clientSending {
 			_ = <-ch
 			clientSending -= 1
 		}
@@ -106,6 +105,6 @@ func main() {
 	startTime := time.Now()
 	do()
 	elapsed := time.Since(startTime)
-	fmt.Printf("client-num: %d, repeats: %d, elapsed: %s\n", clientNum, repeats, elapsed.String())
+    fmt.Printf("client-num: %d, clientParallel: %d, elapsed: %s\n", clientNum, clientParallel, elapsed.String())
 
 }
