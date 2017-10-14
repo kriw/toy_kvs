@@ -25,7 +25,7 @@ func ChangeLogger() {
 func NewLogger() {
 	fileName := strings.Replace(time.Now().String(), " ", "_", -1)
 	fileName = strings.Replace(fileName, "-", "_", -1)
-	fileName = fmt.Sprintf("logFiles/since_%s.log", fileName)
+	fileName = fmt.Sprintf("./logFiles/since_%s.log", fileName)
 	logFile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)

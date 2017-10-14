@@ -5,6 +5,10 @@ else
     cmd=$1
 fi
 
+if [ ! -e logFiles ] ; then
+    mkdir logFiles
+fi
+
 if test $cmd == "server"; then
     rm files/*
     arg=$2
