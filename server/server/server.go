@@ -98,7 +98,6 @@ func requestHandler(conn net.Conn) {
 	defer conn.Close()
 	rx := make(chan []byte)
 	connClosed := make(chan bool)
-	connAlive := true
 	go backgroundRead(conn, rx, connClosed)
 	send := func(msg []byte) {
 		if _, err := conn.Write(msg); err != nil {
@@ -107,17 +106,17 @@ func requestHandler(conn net.Conn) {
 	}
 	//set timeout
 	timeout := make(chan bool, 1)
+	endTimeoutRoutine := make(chan bool, 1)
 	resetTimeout := make(chan bool, 1)
 	go func() {
 		for {
 			for counter := 0; counter < 100*1000; counter += 1 {
-				if !connAlive {
-					return
-				}
 				select {
 				case <-resetTimeout:
 					counter = 0
 					continue
+				case <-endTimeoutRoutine:
+					return
 				default:
 					time.Sleep(1 * time.Millisecond)
 					continue
@@ -147,7 +146,7 @@ func requestHandler(conn net.Conn) {
 			println("timeout")
 			return
 		case <-connClosed:
-			connAlive = false
+			endTimeoutRoutine <- true
 			return
 		}
 	}
