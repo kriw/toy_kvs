@@ -36,11 +36,11 @@ func client(ch chan bool, data []byte, key [proto.HashSize]byte) {
 	q := proto.RequestParam{proto.SET, uint64(len(data)), key, data}
 	p := tkvsProtocol.SerializeReq(q)
 	if _, err := c.Write(p); err != nil {
-		println("Write Error")
+		println("Write Error", err)
 		return
 	}
 	if _, err := c.Read(buf[:]); err != nil {
-		println("Read Error")
+		println("Read Error", err)
 		return
 	}
 	q = proto.RequestParam{proto.CLOSE_CLI, 0, [proto.HashSize]byte{}, make([]byte, 0)}
