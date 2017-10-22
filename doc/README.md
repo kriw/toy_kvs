@@ -40,5 +40,7 @@ Th data about hard disk are omitted in the line chart.
 
 ### Middleware
 
-fuse 3.1.1
+* Linux kerinel 4.10.0-35-generic
+* Distribution Ubuntu 17.04
+* fuse 3.1.1
 
