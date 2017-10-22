@@ -31,3 +31,6 @@ Here is the result of benchmark.
 
 ### Middleware
 
+fuse 3.1.1
+
+### Method

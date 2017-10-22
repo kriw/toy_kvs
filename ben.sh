@@ -4,7 +4,7 @@ resultDir="$(pwd)/benchResult"
 tmpDir="/tmp/toy_kvs"
 mkdir $resultDir
 git clone https://github.com/kriw/toy_kvs $tmpDir
-dir=("fuse" "harddisk01" "nvme" "spdk_fuse")
+dir=("harddisk01" "nvme" "spdk_fuse")
 for d in "${dir[@]}"
 do
     cd "/mnt/$d"
