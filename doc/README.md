@@ -1,18 +1,20 @@
 # Experiments
 
-These are the explaination about benchmarking, middleware, etc.  
+These are the explaination about benchmarking, middleware.  
 
 ## Benchmark
 
 ### Description
 
-Benchmarkings are taken by a following command.
+Benchmark is taken by a following command.  
 ```
 bash run.sh benchmark -client-num=1024 -client-parallel=$n
 ```
-where client-num is the total number of client connection, client-parallel is the maximum nubmer of simultaneous connections and $n is one of [2, 4, 8, ..., 512].
+where client-num is the total number of client connection, client-parallel is the maximum nubmer of simultaneous connections and $n is one of [2, 4, 8, ..., 512].  
 
-It is also taken under each of the following conditions.
+You can find the benchmarking script ![here](../ben.sh).  
+
+It is also taken under each of the following conditions.  
 
 * hardDiskDirectIO
     * Using hard disk with page caching
@@ -31,8 +33,8 @@ Spdk fuse is a fuse system which accesses files with ![spdk](https://github.com/
 
 ### Result
 
-Here is the result of benchmark.  
-Th data about hard disk are omitted in the line chart.  
+Y-axis is elapsed time [seconds].  
+X-axis is the parameter of client-parallel.  
 
 ![Bar Chart](image/bar_chart.png)  
 
