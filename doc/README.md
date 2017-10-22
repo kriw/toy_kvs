@@ -14,12 +14,14 @@ where client-num is the total number of client connection, client-parallel is th
 
 You can find the benchmarking script ![here](../ben.sh).  
 
+The file's size used in benchmarking is about 2MB.  
+
 It is also taken under each of the following conditions.  
 
 * hardDiskDirectIO
     * Using hard disk with page caching
 * hardDiskNonDirectIO
-    * USing hard disk without page caching
+    * Using hard disk without page caching
 * nvmeDirectIO
     * Using NVMe SSD with page caching
 * nvmeNonDirectIO
