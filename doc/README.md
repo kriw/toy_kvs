@@ -10,6 +10,10 @@ These are the explaination about benchmarking, middleware, etc.
 
 Benchmarks are taken under the following conditions.
 
+* hardDiskDirectIO
+    * Using hard disk with page caching
+* hardDiskNonDirectIO
+    * USing hard disk without page caching
 * nvmeDirectIO
     * Using NVMe SSD with page caching
 * nvmeNonDirectIO
@@ -24,6 +28,7 @@ spdk fuse is a fuse system which accesses files by spdk.
 ### Result
 
 Here is the result of benchmark.  
+Th data about hard disk are omitted in the line chart.  
 
 ![Bar Chart](image/bar_chart.png)  
 
